@@ -6,7 +6,8 @@ const router = new Router();
 const PORT = Deno.env.get("PORT") || 8000;
 
 router.get("/api/test", (ctx) => {
-  const out = db.sql`SELECT sqlite_version()`;
+  const out = db.sql`SELECT name FROM sqlite_master WHERE type='table';`;
+  out.push(db.sql`SELECT sqlite_version() AS version;`[0]);
   ctx.response.body = { out, time: Date.now() };
 });
 // .post("/api/todos", async (ctx) => {
