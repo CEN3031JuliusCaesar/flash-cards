@@ -11,6 +11,7 @@ db.sql`
     username varchar(32) PRIMARY KEY,
     email varchar(320) NOT NULL,
     hash char(32) NOT NULL,
+    salt char(20) NOT NULL,
     pic_id tinyint DEFAULT 0,
     description varchar(250),
     streak integer DEFAULT 0,
