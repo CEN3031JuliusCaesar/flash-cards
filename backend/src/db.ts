@@ -1,6 +1,6 @@
 import { Database } from "jsr:@db/sqlite";
 
-const db = new Database("./database.sqlite");
+export const db = new Database("./database.sqlite");
 
 console.log("✅ SQLite DB initialized");
 
@@ -22,15 +22,6 @@ db.sql`
 
 console.log("✅ Users table ensured");
 
-db.sql`
-  CREATE TABLE IF NOT EXISTS CanEdit (
-    username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    set_id integer REFERENCES Sets(id) ON DELETE CASCADE,
-    PRIMARY KEY (username, set_id)
-  );
-`
-
-console.log("✅ CanEdit table ensured");
 
 db.sql`
   CREATE TABLE IF NOT EXISTS Sets (
@@ -77,4 +68,12 @@ db.sql`
 
 console.log("✅ Sessions table ensured");
 
-export { db };
+db.sql`
+  CREATE TABLE IF NOT EXISTS CanEdit (
+    username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
+    set_id integer REFERENCES Sets(id) ON DELETE CASCADE,
+    PRIMARY KEY (username, set_id)
+  );
+`
+
+console.log("✅ CanEdit table ensured");
