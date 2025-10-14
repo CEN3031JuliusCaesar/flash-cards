@@ -13,11 +13,10 @@ cardsRouter.get("/:setId/:cardId", (ctx) => {
   const { setId, cardId } = ctx.params;
 
   console.info(`GET /cards/${setId}/${cardId}`);
-
   const data = db.sql`
       SELECT * FROM Cards
       WHERE set_id = ${setId}
-        AND id = ${cardId}
+        AND id = ${cardId};
     `;
 
   ctx.response.body = data;
@@ -43,7 +42,7 @@ cardsRouter.get("/:setId/:cardId/progress", async (ctx) => {
       WHERE s.token = ${SESSION}
         AND s.expires > current_timestamp
         AND cp.set_id = ${setId}
-        AND cp.card_id = ${cardId}
+        AND cp.card_id = ${cardId};
     `;
 
   ctx.response.body = data;
