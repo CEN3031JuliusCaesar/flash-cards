@@ -41,7 +41,7 @@ cardsRouter.get("/:setId/:cardId/progress", async (ctx) => {
       FROM CardProgress cp
       JOIN Sessions s ON cp.username = s.username
       WHERE s.token = ${SESSION}
-        AND s.expires > current_timestamp
+        AND s.expires > strftime('%s', 'now')
         AND cp.set_id = ${setId}
         AND cp.card_id = ${cardId}
     `;
