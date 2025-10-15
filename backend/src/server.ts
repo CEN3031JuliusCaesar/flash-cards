@@ -1,17 +1,14 @@
-import { Application, Router, send } from "jsr:@oak/oak";
-import { cardsRouter } from "./routes/cards.ts";
-import { streakRouter } from "./routes/streak.ts";
+import { Application, send } from "jsr:@oak/oak";
+import { createAPIRouter } from "./routes/combined.ts";
+import { initializeDB, persistentDB } from "./db.ts";
+
+const db = persistentDB();
+initializeDB(db);
 
 const app = new Application();
-const router = new Router();
 const PORT = Deno.env.get("PORT") || 8000;
 
-router.use("/api/cards", cardsRouter.routes(), cardsRouter.allowedMethods());
-router.use(
-  "/api/streaks",
-  streakRouter.routes(),
-  streakRouter.allowedMethods(),
-);
+const router = createAPIRouter(db);
 
 app.use(router.routes());
 app.use(router.allowedMethods());

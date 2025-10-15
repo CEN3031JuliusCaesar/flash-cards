@@ -1,22 +1,23 @@
 import { Router } from "jsr:@oak/oak";
 import { NO_SESSION_TOKEN } from "./constants.ts";
-import { db } from "../db.ts";
+import { Database } from "@db/sqlite";
 
-export const streakRouter = new Router();
+export function createStreakRouter(db: Database) {
+  const router = new Router();
 
-streakRouter.get("/", async (ctx) => {
-  const SESSION = await ctx.cookies.get("SESSION");
-  if (SESSION == null) {
-    ctx.response.body = {
-      error: NO_SESSION_TOKEN,
-    };
-    ctx.response.status = 404;
-    return;
-  }
+  router.get("/", async (ctx) => {
+    const SESSION = await ctx.cookies.get("SESSION");
+    if (SESSION == null) {
+      ctx.response.body = {
+        error: NO_SESSION_TOKEN,
+      };
+      ctx.response.status = 404;
+      return;
+    }
 
-  console.info(`GET /streaks/`);
+    console.info(`GET /streaks/`);
 
-  const data = db.sql`
+    const data = db.sql`
       SELECT
           CASE
               WHEN u.streak_expire < (strftime('%s', 'now') - 48 * 3600) THEN 0
@@ -28,35 +29,38 @@ streakRouter.get("/", async (ctx) => {
         AND s.expires > strftime('%s', 'now');
     `;
 
-  ctx.response.body = data;
-});
+    ctx.response.body = data;
+  });
 
-streakRouter.get("/update", async (ctx) => {
-  const SESSION = await ctx.cookies.get("SESSION");
-  if (SESSION == null) {
-    ctx.response.body = {
-      error: NO_SESSION_TOKEN,
-    };
-    ctx.response.status = 404;
-    return;
-  }
-  console.info(`PUT /streaks/update`);
+  router.get("/update", async (ctx) => {
+    const SESSION = await ctx.cookies.get("SESSION");
+    if (SESSION == null) {
+      ctx.response.body = {
+        error: NO_SESSION_TOKEN,
+      };
+      ctx.response.status = 404;
+      return;
+    }
+    console.info(`PUT /streaks/update`);
 
-  const data = db.sql`
-    UPDATE Users
-    SET
-        streak = streak + 1,
-        streak_expire = strftime('%s', date('now'))
-    WHERE username IN (
-        SELECT username
-        FROM Sessions
-        WHERE token = ${SESSION}
-          AND expires > strftime('%s', 'now')
-    )
-    AND streak_expire BETWEEN
-        (strftime('%s', 'now') - 48 * 3600)
-        AND (strftime('%s', 'now') - 24 * 3600);
-  `;
+    const data = db.sql`
+      UPDATE Users
+      SET
+          streak = streak + 1,
+          streak_expire = strftime('%s', date('now'))
+      WHERE username IN (
+          SELECT username
+          FROM Sessions
+          WHERE token = ${SESSION}
+            AND expires > strftime('%s', 'now')
+      )
+      AND streak_expire BETWEEN
+          (strftime('%s', 'now') - 48 * 3600)
+          AND (strftime('%s', 'now') - 24 * 3600);
+    `;
 
-  ctx.response.body = data;
-});
+    ctx.response.body = data;
+  });
+
+  return router;
+}
