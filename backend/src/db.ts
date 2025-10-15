@@ -1,4 +1,4 @@
-import { Database } from "jsr:@db/sqlite";
+import { Database } from "@db/sqlite";
 
 export const db = new Database("./database.sqlite");
 
@@ -15,46 +15,44 @@ db.sql`
     pic_id tinyint DEFAULT 0,
     description varchar(250),
     streak integer DEFAULT 0,
-    streak_expire integer DEFAULT current_timestamp
+    streak_expire integer DEFAULT strftime('%s', 'now')
   );
-`
-
+`;
 
 console.log("✅ Users table ensured");
 
-
 db.sql`
   CREATE TABLE IF NOT EXISTS Sets (
-    id integer PRIMARY KEY AUTOINCREMENT,
+    id char(16) PRIMARY KEY,
     owner varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
     title varchar(50) NOT NULL
   );
-`
+`;
 
 console.log("✅ Sets table ensured");
 
 db.sql`
   CREATE TABLE IF NOT EXISTS Cards (
-    set_id integer REFERENCES Sets(id) ON DELETE CASCADE,
-    id smallint,
+    set_id char(16) REFERENCES Sets(id) ON DELETE CASCADE,
+    id char(16),
     front varchar(1000) NOT NULL,
     back varchar(1000) NOT NULL,
     PRIMARY KEY (set_id, id)
   );
-`
+`;
 
 console.log("✅ Cards table ensured");
 
 db.sql`
   CREATE TABLE IF NOT EXISTS CardProgress (
     username varchar(32) REFERENCES Users(username) ON DELETE CASCADE,
-    set_id integer REFERENCES Cards(set_id) ON DELETE CASCADE,
-    card_id integer REFERENCES Cards(id) ON DELETE CASCADE,
+    set_id char(16) REFERENCES Cards(set_id) ON DELETE CASCADE,
+    card_id char(16) REFERENCES Cards(id) ON DELETE CASCADE,
     points smallint DEFAULT 0,
-    last_reviewed integer DEFAULT current_timestamp,
+    last_reviewed integer DEFAULT strftime('%s', 'now'),
     PRIMARY KEY (username, set_id, card_id)
   );
-`
+`;
 
 console.log("✅ CardProgress table ensured");
 
@@ -62,18 +60,18 @@ db.sql`
   CREATE TABLE IF NOT EXISTS Sessions (
     token char(32) PRIMARY KEY,
     username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    expires integer DEFAULT (current_timestamp+60*60*24)
+    expires integer DEFAULT (strftime('%s', 'now')+60*60*24*2)
   );
-`
+`;
 
 console.log("✅ Sessions table ensured");
 
 db.sql`
   CREATE TABLE IF NOT EXISTS CanEdit (
     username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    set_id integer REFERENCES Sets(id) ON DELETE CASCADE,
+    set_id char(16) REFERENCES Sets(id) ON DELETE CASCADE,
     PRIMARY KEY (username, set_id)
   );
-`
+`;
 
 console.log("✅ CanEdit table ensured");
