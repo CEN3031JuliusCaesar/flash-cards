@@ -1,4 +1,3 @@
-
 export const Snowflake = class Snowflake {
   static lastTime = 0;
   static sequence = 0;
@@ -7,8 +6,8 @@ export const Snowflake = class Snowflake {
    */
   public static generate() {
     const TIMESTAMP = Date.now();
-    if(Snowflake.lastTime === TIMESTAMP) {
-      Snowflake.sequence = (Snowflake.sequence + 1);
+    if (Snowflake.lastTime === TIMESTAMP) {
+      Snowflake.sequence = Snowflake.sequence + 1;
     } else {
       Snowflake.sequence = 0;
     }
@@ -19,7 +18,7 @@ export const Snowflake = class Snowflake {
   }
 
   public static isSnowflake(snowflake: string) {
-    if(snowflake.length !== 16) return false;
+    if (snowflake.length !== 16) return false;
     return /^[0-9a-f]+$/.test(snowflake);
   }
-}
+};

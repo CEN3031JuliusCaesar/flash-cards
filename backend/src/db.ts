@@ -1,77 +1,79 @@
 import { Database } from "@db/sqlite";
 
-export const db = new Database("./database.sqlite");
+let db: Database;
 
-console.log("✅ SQLite DB initialized");
+export function persistentDB() {
+  if (!db) db = new Database("./database.sqlite");
 
-db.sql`PRAGMA foreign_keys = ON;`;
+  return db;
+}
 
-db.sql`
-  CREATE TABLE IF NOT EXISTS Users (
-    username varchar(32) PRIMARY KEY,
-    email varchar(320) NOT NULL,
-    hash char(32) NOT NULL,
-    salt char(20) NOT NULL,
-    pic_id tinyint DEFAULT 0,
-    description varchar(250),
-    streak integer DEFAULT 0,
-    streak_expire integer DEFAULT strftime('%s', 'now')
-  );
-`;
+export function memDB() {
+  const out = new Database(":memory:", {
+    memory: true,
+  });
 
-console.log("✅ Users table ensured");
+  return out;
+}
 
-db.sql`
-  CREATE TABLE IF NOT EXISTS Sets (
-    id char(16) PRIMARY KEY,
-    owner varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    title varchar(50) NOT NULL
-  );
-`;
+export function initializeDB(db: Database) {
+  db.sql`PRAGMA foreign_keys = ON;`;
 
-console.log("✅ Sets table ensured");
+  db.sql`
+    CREATE TABLE IF NOT EXISTS Users (
+      username varchar(32) PRIMARY KEY,
+      email varchar(320) NOT NULL,
+      hash char(32) NOT NULL,
+      salt char(20) NOT NULL,
+      pic_id tinyint DEFAULT 0,
+      description varchar(250),
+      streak integer DEFAULT 0,
+      streak_expire integer
+    );
+  `;
 
-db.sql`
-  CREATE TABLE IF NOT EXISTS Cards (
-    set_id char(16) REFERENCES Sets(id) ON DELETE CASCADE,
-    id char(16),
-    front varchar(1000) NOT NULL,
-    back varchar(1000) NOT NULL,
-    PRIMARY KEY (set_id, id)
-  );
-`;
+  db.sql`
+    CREATE TABLE IF NOT EXISTS Sets (
+      id char(16) PRIMARY KEY,
+      owner varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
+      title varchar(50) NOT NULL
+    );
+  `;
 
-console.log("✅ Cards table ensured");
+  db.sql`
+    CREATE TABLE IF NOT EXISTS Cards (
+      id char(16) PRIMARY KEY,
+      set_id char(16) REFERENCES Sets(id) ON DELETE CASCADE,
+      front varchar(1000) NOT NULL,
+      back varchar(1000) NOT NULL
+    );
+  `;
 
-db.sql`
-  CREATE TABLE IF NOT EXISTS CardProgress (
-    username varchar(32) REFERENCES Users(username) ON DELETE CASCADE,
-    set_id char(16) REFERENCES Cards(set_id) ON DELETE CASCADE,
-    card_id char(16) REFERENCES Cards(id) ON DELETE CASCADE,
-    points smallint DEFAULT 0,
-    last_reviewed integer DEFAULT strftime('%s', 'now'),
-    PRIMARY KEY (username, set_id, card_id)
-  );
-`;
+  db.sql`
+    CREATE TABLE IF NOT EXISTS CardProgress (
+      username varchar(32) REFERENCES Users(username) ON DELETE CASCADE,
+      card_id char(16) REFERENCES Cards(id) ON DELETE CASCADE,
+      points smallint DEFAULT 0,
+      last_reviewed integer,
+      PRIMARY KEY (username, card_id)
+    );
+  `;
 
-console.log("✅ CardProgress table ensured");
+  db.sql`
+    CREATE TABLE IF NOT EXISTS Sessions (
+      token char(32) PRIMARY KEY,
+      username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
+      expires integer
+    );
+  `;
 
-db.sql`
-  CREATE TABLE IF NOT EXISTS Sessions (
-    token char(32) PRIMARY KEY,
-    username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    expires integer DEFAULT (strftime('%s', 'now')+60*60*24*2)
-  );
-`;
+  db.sql`
+    CREATE TABLE IF NOT EXISTS CanEdit (
+      username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
+      set_id char(16) REFERENCES Sets(id) ON DELETE CASCADE,
+      PRIMARY KEY (username, set_id)
+    );
+  `;
+}
 
-console.log("✅ Sessions table ensured");
-
-db.sql`
-  CREATE TABLE IF NOT EXISTS CanEdit (
-    username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-    set_id char(16) REFERENCES Sets(id) ON DELETE CASCADE,
-    PRIMARY KEY (username, set_id)
-  );
-`;
-
-console.log("✅ CanEdit table ensured");
+// TODO: Implement Mock Data Initializer.
