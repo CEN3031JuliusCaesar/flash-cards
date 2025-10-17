@@ -1,6 +1,7 @@
 import { Database } from "jsr:@db/sqlite";
 import { createCardRouter } from "./cards.ts";
 import { createStreakRouter } from "./streak.ts";
+import { createAuthRouter } from "./auth.ts";
 import { Router } from "jsr:@oak/oak";
 
 export function createAPIRouter(db: Database) {
@@ -15,6 +16,9 @@ export function createAPIRouter(db: Database) {
     streakRouter.routes(),
     streakRouter.allowedMethods(),
   );
+
+  const authRouter = createAuthRouter(db);
+  router.use("/api/auth", authRouter.routes(), authRouter.allowedMethods());
 
   return router;
 }
