@@ -1,0 +1,27 @@
+# .github/workflows/deno.yml
+name: Deno CI
+
+on:
+  push:
+    branches: ["**"]
+
+jobs:
+  deno-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+          cache: true
+
+      - name: Check formatting
+        run: deno fmt --check backend/
+
+      - name: Test backend code
+        working-directory: ./backend
+        run: deno test -A
