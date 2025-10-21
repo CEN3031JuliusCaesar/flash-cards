@@ -106,8 +106,6 @@ Deno.test({
 
     assertEquals(loginCtx.response.body, undefined);
 
-    console.log(loginCtx.response.headers);
-
     assert(
       typeof loginCtx.response.headers.get("set-cookie") == "string",
       "Session should be set to empty.",
