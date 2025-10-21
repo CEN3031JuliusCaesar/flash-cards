@@ -1,5 +1,5 @@
 import { render } from "preact";
-import { LocationProvider, Router, Route } from "preact-iso";
+import { LocationProvider, Route, Router } from "preact-iso";
 
 import { Header } from "./components/Header.tsx";
 import { Home } from "./pages/Home/index.tsx";
