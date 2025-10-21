@@ -14,7 +14,6 @@ export function createCardRouter(db: Database) {
   router.get("/:cardId", (ctx) => {
     const { cardId } = ctx.params;
 
-    console.info(`GET /cards/${cardId}`);
     const data = db.sql`
       SELECT * FROM Cards
       WHERE id = ${cardId};
