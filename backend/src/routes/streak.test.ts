@@ -4,6 +4,14 @@ import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
 import { NO_SESSION_TOKEN } from "./constants.ts";
 
+const TEST_USERNAME = "testuser";
+const TEST_EMAIL = "test@example.com";
+const TEST_HASH = "hash";
+const TEST_SALT = "salt";
+const TEST_SESSION_TOKEN = "valid_session_token";
+const HOURS_IN_SECONDS = 3600;
+const ONE_DAY_IN_SECONDS = 86400;
+
 Deno.test({
   name: "Streak w/o Session Fails",
   async fn() {
@@ -32,21 +40,19 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    const testUsername = "testuser";
-    const testSession = "valid_session_token";
     const now = Math.floor(Date.now() / 1000);
 
     db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${testUsername}, ${"test@example.com"}, ${"hash"}, ${"salt"}, ${5}, ${
-      now - 12 * 3600
-    })`;
+           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${5}, ${
+             now - 12 * HOURS_IN_SECONDS
+           })`;
     db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${testUsername}, ${testSession}, ${now + 3600})`;
+           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${now + HOURS_IN_SECONDS})`;
 
     const ctx = testing.createMockContext({
       path: "/api/streaks",
       method: "GET",
-      headers: [["Cookie", `SESSION=${testSession}`]],
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
     });
 
     await mw(ctx, next);
@@ -64,22 +70,20 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    const testUsername = "testuser";
-    const testSession = "valid_session_token";
     const now = Math.floor(Date.now() / 1000);
 
     // streak expired 50 hours ago
     db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${testUsername}, ${"test@example.com"}, ${"hash"}, ${"salt"}, ${10}, ${
-      now - 50 * 3600
-    })`;
+           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${10}, ${
+             now - 50 * HOURS_IN_SECONDS
+           })`;
     db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${testUsername}, ${testSession}, ${now + 3600})`;
+           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${now + HOURS_IN_SECONDS})`;
 
     const ctx = testing.createMockContext({
       path: "/api/streaks",
       method: "GET",
-      headers: [["Cookie", `SESSION=${testSession}`]],
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
     });
 
     await mw(ctx, next);
@@ -117,32 +121,28 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    const testUsername = "testuser";
-    const testSession = "valid_session_token";
     const now = Math.floor(Date.now() / 1000);
 
     db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${testUsername}, ${"test@example.com"}, ${"hash"}, ${"salt"}, ${3}, ${
-      now - 36 * 3600
-    })`;
+           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${3}, ${
+             now - 36 * HOURS_IN_SECONDS
+           })`;
     db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${testUsername}, ${testSession}, ${now + 3600})`;
+           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${now + HOURS_IN_SECONDS})`;
 
     const ctx = testing.createMockContext({
       path: "/api/streaks/update",
       method: "POST",
-      headers: [["Cookie", `SESSION=${testSession}`]],
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
     });
 
     await mw(ctx, next);
 
     const updatedUser =
-      db.sql`SELECT streak, streak_expire FROM Users WHERE username = ${testUsername};`[
-        0
-      ];
+      db.sql`SELECT streak, streak_expire FROM Users WHERE username = ${TEST_USERNAME};`[0];
     assertEquals(updatedUser.streak, 4);
     const expireTime = parseInt(updatedUser.streak_expire);
-    assert(Math.abs(expireTime - now) < 86400);
+    assert(Math.abs(expireTime - now) < ONE_DAY_IN_SECONDS);
 
     assertEquals(ctx.response.status, 200);
     assertEquals(ctx.response.body, []);
@@ -157,27 +157,25 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    const testUsername = "testuser";
-    const testSession = "valid_session_token";
     const now = Math.floor(Date.now() / 1000);
 
     db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${testUsername}, ${"test@example.com"}, ${"hash"}, ${"salt"}, ${2}, ${
-      now - 12 * 3600
-    })`;
+           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${2}, ${
+             now - 12 * HOURS_IN_SECONDS
+           })`;
     db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${testUsername}, ${testSession}, ${now + 3600})`;
+           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${now + HOURS_IN_SECONDS})`;
 
     const ctx = testing.createMockContext({
       path: "/api/streaks/update",
       method: "POST",
-      headers: [["Cookie", `SESSION=${testSession}`]],
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
     });
 
     await mw(ctx, next);
 
     const updatedUser =
-      db.sql`SELECT streak FROM Users WHERE username = ${testUsername};`[0];
+      db.sql`SELECT streak FROM Users WHERE username = ${TEST_USERNAME};`[0];
     assertEquals(updatedUser.streak, 2);
 
     assertEquals(ctx.response.status, 200);
@@ -193,27 +191,25 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    const testUsername = "testuser";
-    const testSession = "valid_session_token";
     const now = Math.floor(Date.now() / 1000);
 
     db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${testUsername}, ${"test@example.com"}, ${"hash"}, ${"salt"}, ${7}, ${
-      now - 60 * 3600
-    })`;
+           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${7}, ${
+             now - 60 * HOURS_IN_SECONDS
+           })`;
     db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${testUsername}, ${testSession}, ${now + 3600})`;
+           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${now + HOURS_IN_SECONDS})`;
 
     const ctx = testing.createMockContext({
       path: "/api/streaks/update",
       method: "POST",
-      headers: [["Cookie", `SESSION=${testSession}`]],
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
     });
 
     await mw(ctx, next);
 
     const updatedUser =
-      db.sql`SELECT streak FROM Users WHERE username = ${testUsername};`[0];
+      db.sql`SELECT streak FROM Users WHERE username = ${TEST_USERNAME};`[0];
     assertEquals(updatedUser.streak, 7);
 
     assertEquals(ctx.response.status, 200);
