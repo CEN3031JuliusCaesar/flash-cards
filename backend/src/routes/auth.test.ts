@@ -2,6 +2,13 @@ import { testing } from "@oak/oak";
 import { assert, assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
+import { pbkdf2, toHex } from "../utils/hashing.ts";
+
+const TEST_USERNAME = "testuser";
+const TEST_PASSWORD = "mypassword123";
+const TEST_EMAIL = "testemail@service.webemail";
+const TEST_SALT = "73616c74"; // hex for 'salt'
+const TEST_SESSION_TOKEN = "token";
 
 Deno.test({
   name: "Account Creation",
@@ -17,9 +24,9 @@ Deno.test({
       method: "POST",
       body: ReadableStream.from([
         JSON.stringify({
-          username: "testuser",
-          password: "mypassword123",
-          email: "testemail@service.webemail",
+          username: TEST_USERNAME,
+          password: TEST_PASSWORD,
+          email: TEST_EMAIL,
         }),
       ]),
       headers: [["Content-Type", "application/json"]],
@@ -31,8 +38,8 @@ Deno.test({
 
     assertEquals(db.sql`SELECT email, username FROM Users;`, [
       {
-        username: "testuser",
-        email: "testemail@service.webemail",
+        username: TEST_USERNAME,
+        email: TEST_EMAIL,
       },
     ]);
   },
@@ -47,15 +54,19 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${"testuser"}, ${"testemail@service.webemail"}, ${"c297e57206c7aee60fe2ede4bee13021542d0d472fa690c76557cdccf8610cc6cc63ff0d6f6a2f6433c577c5326d3023aabdedd04e453b43bfe1fd1ccc9cb728"}, ${"salt"})`;
+    const hashedPassword = toHex(
+      await pbkdf2(TEST_PASSWORD, TEST_SALT, 100000, 64, "SHA-256"),
+    );
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${hashedPassword}, ${TEST_SALT})`;
 
     const loginCtx = testing.createMockContext({
       path: "/api/auth/login",
       method: "POST",
       body: ReadableStream.from([
         JSON.stringify({
-          username: "testuser",
-          password: "mypassword123",
+          username: TEST_USERNAME,
+          password: TEST_PASSWORD,
         }),
       ]),
       headers: [["Content-Type", "application/json"]],
@@ -77,7 +88,7 @@ Deno.test({
 
     assertEquals(db.sql`SELECT username, token FROM Sessions;`, [
       {
-        username: "testuser",
+        username: TEST_USERNAME,
         token: session,
       },
     ]);
@@ -93,13 +104,17 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${"testuser"}, ${"testemail@service.webemail"}, ${"c297e57206c7aee60fe2ede4bee13021542d0d472fa690c76557cdccf8610cc6cc63ff0d6f6a2f6433c577c5326d3023aabdedd04e453b43bfe1fd1ccc9cb728"}, ${"salt"})`;
-    db.sql`INSERT INTO Sessions (username, token) VALUES (${"testuser"}, ${"token"})`;
+    const hashedPassword = toHex(
+      await pbkdf2(TEST_PASSWORD, TEST_SALT, 100000, 64, "SHA-256"),
+    );
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${hashedPassword}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sessions (username, token) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN})`;
 
     const loginCtx = testing.createMockContext({
       path: "/api/auth/logout",
       method: "POST",
-      headers: [["Cookie", `SESSION=token`]],
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
     });
 
     await mw(loginCtx, next);
