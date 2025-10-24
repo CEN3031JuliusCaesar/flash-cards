@@ -1,8 +1,8 @@
-import { Database } from "jsr:@db/sqlite";
+import { Database } from "@db/sqlite";
 import { createCardRouter } from "./cards.ts";
 import { createStreakRouter } from "./streak.ts";
 import { createAuthRouter } from "./auth.ts";
-import { Router } from "jsr:@oak/oak";
+import { Router } from "@oak/oak";
 
 export function createAPIRouter(db: Database) {
   const router = new Router();

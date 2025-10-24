@@ -1,4 +1,4 @@
-import { Router } from "jsr:@oak/oak";
+import { Router } from "@oak/oak";
 import { NO_SESSION_TOKEN } from "./constants.ts";
 import { Database } from "@db/sqlite";
 
@@ -15,8 +15,6 @@ export function createStreakRouter(db: Database) {
       return;
     }
 
-    console.info(`GET /streaks/`);
-
     const data = db.sql`
       SELECT
           CASE
@@ -32,7 +30,7 @@ export function createStreakRouter(db: Database) {
     ctx.response.body = data;
   });
 
-  router.get("/update", async (ctx) => {
+  router.post("/update", async (ctx) => {
     const SESSION = await ctx.cookies.get("SESSION");
     if (SESSION == null) {
       ctx.response.body = {
@@ -41,7 +39,6 @@ export function createStreakRouter(db: Database) {
       ctx.response.status = 404;
       return;
     }
-    console.info(`PUT /streaks/update`);
 
     const data = db.sql`
       UPDATE Users
