@@ -1,8 +1,7 @@
-import { Router } from "jsr:@oak/oak";
-
+import { Router } from "@oak/oak";
 import { Database } from "@db/sqlite";
-import { pbkdf2Sync } from "node:crypto";
 import { generateSessionToken } from "../utils/sessionkey.ts";
+import { pbkdf2, toHex } from "../utils/hashing.ts";
 
 export function createAuthRouter(db: Database) {
   const router = new Router();
@@ -41,13 +40,9 @@ export function createAuthRouter(db: Database) {
       return;
     }
 
-    const hashedPassword = pbkdf2Sync(
-      body.password,
-      salt,
-      100000,
-      64,
-      "sha256",
-    ).toString("hex");
+    const hashedPassword = toHex(
+      await pbkdf2(body.password, salt, 100000, 64, "SHA-256"),
+    );
 
     const user = db
       .sql`SELECT username FROM Users WHERE username = ${body.username} AND hash = ${hashedPassword};`[
@@ -106,13 +101,9 @@ export function createAuthRouter(db: Database) {
       .getRandomValues(new Uint8Array(16))
       .reduce((acc, byte) => acc + byte.toString(16).padStart(2, "0"), "");
 
-    const hashedPassword = pbkdf2Sync(
-      body.password,
-      salt,
-      100000,
-      64,
-      "sha256",
-    ).toString("hex");
+    const hashedPassword = toHex(
+      await pbkdf2(body.password, salt, 100000, 64, "SHA-256"),
+    );
 
     if (
       db.sql`SELECT username FROM Users WHERE username = ${body.username};`[0]
