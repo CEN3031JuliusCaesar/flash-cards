@@ -19,6 +19,17 @@ const LoginPage = ({ onLogin }: Props) => {
     console.log("Logging in", { username });
     if (onLogin) onLogin(username);
     else alert(`Logged in as ${username}`);
+    fetch("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password }),
+      headers: {
+        "Content-Type": "application/json",
+        credentials: "include",
+      },
+    })
+    .then((res) => {
+      location.href = "/dashboard";
+    }
   };
 
   return (

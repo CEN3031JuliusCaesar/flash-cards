@@ -5,6 +5,7 @@ import { Header } from "./components/Header.tsx";
 import { Home } from "./pages/Home/index.tsx";
 import { NotFound } from "./pages/_404.tsx";
 import "./style.css";
+import LoginPage from "./pages/LoginPage.js";
 
 export function App() {
   return (
@@ -13,6 +14,7 @@ export function App() {
       <main>
         <Router>
           <Route path="/" component={Home} />
+          <Route path="/login" component={LoginPage} />
           <Route default component={NotFound} />
         </Router>
       </main>
