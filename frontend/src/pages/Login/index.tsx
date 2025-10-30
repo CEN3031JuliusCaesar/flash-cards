@@ -37,8 +37,7 @@ export default function Login() {
                 type="text"
                 value={username}
                 onInput={(e: InputEvent) =>
-                  setUsername((e.target as HTMLInputElement).value)
-                }
+                  setUsername((e.target as HTMLInputElement).value)}
               />
             </label>
           </div>
@@ -50,8 +49,7 @@ export default function Login() {
                 type="password"
                 value={password}
                 onInput={(e: InputEvent) =>
-                  setPassword((e.target as HTMLInputElement).value)
-                }
+                  setPassword((e.target as HTMLInputElement).value)}
               />
             </label>
           </div>

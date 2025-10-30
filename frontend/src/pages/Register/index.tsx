@@ -39,8 +39,7 @@ export default function Register() {
                 type="text"
                 value={email}
                 onInput={(e: InputEvent) =>
-                  setEmail((e.target as HTMLInputElement).value)
-                }
+                  setEmail((e.target as HTMLInputElement).value)}
               />
             </label>
           </div>
@@ -52,8 +51,7 @@ export default function Register() {
                 type="text"
                 value={username}
                 onInput={(e: InputEvent) =>
-                  setUsername((e.target as HTMLInputElement).value)
-                }
+                  setUsername((e.target as HTMLInputElement).value)}
               />
             </label>
           </div>
@@ -65,8 +63,7 @@ export default function Register() {
                 type="password"
                 value={password}
                 onInput={(e: InputEvent) =>
-                  setPassword((e.target as HTMLInputElement).value)
-                }
+                  setPassword((e.target as HTMLInputElement).value)}
               />
             </label>
           </div>
