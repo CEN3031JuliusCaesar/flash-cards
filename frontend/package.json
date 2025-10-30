@@ -7,6 +7,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.5",
+    "axios": "^1.13.1",
     "preact": "^10.26.9",
     "preact-iso": "^2.10.0"
   },

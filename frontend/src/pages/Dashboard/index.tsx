@@ -16,6 +16,9 @@ export default function DashboardPage() {
       >
         To Set Page
       </button>
+      <button type="button" onClick={() => location.route("/login")}>
+        To Login Page
+      </button>
     </main>
   );
 }

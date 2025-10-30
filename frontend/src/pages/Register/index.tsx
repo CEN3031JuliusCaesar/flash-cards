@@ -1,18 +1,20 @@
-import "./style.css";
-import { login, LoginParams } from "../../api/auth.ts";
+import "../Login/style.css";
+
+import { register, RegisterParams } from "../../api/auth.ts";
 import { useState } from "preact/hooks";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "preact-iso/router";
 
-export default function Login() {
+export default function Register() {
+  const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const location = useLocation();
 
   const { mutate, isPending, isError, error } = useMutation({
-    mutationFn: (creds: LoginParams) => login(creds),
+    mutationFn: (creds: RegisterParams) => register(creds),
     onSuccess: () => {
-      location.route("/dashboard");
+      location.route("/login");
     },
   });
 
@@ -20,16 +22,29 @@ export default function Login() {
     e.preventDefault();
 
     console.log("Logging in", { username });
-    mutate({ username, password });
+    mutate({ username, password, email });
   };
 
   return (
     <main class="login-page">
       <div class="login-card">
         <h1>🔥Welcome to QuizLit🔥</h1>
-        <h2>Please login</h2>
+        <h2>Please create an account</h2>
 
         <form onSubmit={submit}>
+          <div>
+            <label>
+              Email
+              <input
+                type="text"
+                value={email}
+                onInput={(e: InputEvent) =>
+                  setEmail((e.target as HTMLInputElement).value)
+                }
+              />
+            </label>
+          </div>
+
           <div>
             <label>
               Username
@@ -60,19 +75,20 @@ export default function Login() {
 
           <div class="button-group">
             <button type="submit" disabled={isPending}>
-              Sign In
+              Create Account
             </button>
           </div>
         </form>
 
+        {/* Dashboard button */}
         <div class="dashboard-button">
           <button type="button" onClick={() => location.route("/dashboard")}>
             Back to Dashboard
           </button>
         </div>
-        <div class="register-button">
-          <button type="button" onClick={() => location.route("/register")}>
-            Or Register
+        <div class="login-button">
+          <button type="button" onClick={() => location.route("/login")}>
+            Or Log In
           </button>
         </div>
       </div>
