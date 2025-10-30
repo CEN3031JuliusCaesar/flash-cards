@@ -1,16 +1,14 @@
 import { useState } from "preact/hooks";
+import { useLocation } from "preact-iso/router";
 
-type Props = {
-  onGoBack?: () => void; // new prop for navigation
-  
-};
+const FlashCardPage = () => {
+  const location = useLocation();
 
-const FlashCardPage = ({ onGoBack }: Props) => {
   const [flipped, setFlipped] = useState(false);
-  const handleFlagThrow = () => {alert("Feature not implemented yet");
-// const FlashCardPage = () => {
-//   const [flipped, setFlipped] = useState(false);
-  }
+  const handleFlagThrow = () => {
+    alert("Feature not implemented yet");
+  };
+
   return (
     <main
       style={{
@@ -42,6 +40,7 @@ const FlashCardPage = ({ onGoBack }: Props) => {
 
       {/* "Flips" flashcard */}
       <button
+        type="button"
         onClick={() => setFlipped(!flipped)}
         style={{
           padding: "0.5rem 1rem",
@@ -53,36 +52,41 @@ const FlashCardPage = ({ onGoBack }: Props) => {
         Flip Card
       </button>
 
-
       {/* Throw flags if buttons pressed (feature not implemented) */}
       <div style={{ display: "flex", gap: "0.5rem" }}>
-
-        <button 
-            style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
-            onClick = {handleFlagThrow} 
+        <button
+          type="button"
+          style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
+          onClick={handleFlagThrow}
         >
           Fully Learned
         </button>
         <button
-            style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
-            onClick = {handleFlagThrow} 
+          type="button"
+          style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
+          onClick={handleFlagThrow}
         >
           Almost Learned
         </button>
 
-        <button 
-            style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
-            onClick = {handleFlagThrow} 
+        <button
+          type="button"
+          style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
+          onClick={handleFlagThrow}
         >
           Need More Review
         </button>
-
       </div>
-    {/*Back to dashboard button connects with onClick={onGoBack} */}
-    <div style={{ marginTop: "1rem" }}>
+      {/*Back to dashboard button connects with onClick={onGoBack} */}
+      <div style={{ marginTop: "1rem" }}>
         <button
-          onClick={onGoBack}
-          style={{ padding: "0.5rem 1rem", fontSize: "1rem", cursor: "pointer" }}
+          type="button"
+          onClick={() => location.route("/dashboard")}
+          style={{
+            padding: "0.5rem 1rem",
+            fontSize: "1rem",
+            cursor: "pointer",
+          }}
         >
           Back to Dashboard
         </button>

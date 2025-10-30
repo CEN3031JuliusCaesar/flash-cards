@@ -1,11 +1,8 @@
-import { FunctionalComponent } from "preact";
+import { useLocation } from "preact-iso/router";
 
-type Props = {
-  onButton1Click?: () => void;
-  onButton2Click?: () => void;
-};
+export default function DashboardPage() {
+  const location = useLocation();
 
-const DashboardPage: FunctionalComponent<Props> = ({ onButton1Click, onButton2Click }) => {
   return (
     <main
       style={{
@@ -19,19 +16,19 @@ const DashboardPage: FunctionalComponent<Props> = ({ onButton1Click, onButton2Cl
     >
       <h1>Dashboard</h1>
       <button
+        type="button"
         style={{ padding: "0.5rem 1rem", fontSize: "1rem", cursor: "pointer" }}
-        onClick={onButton1Click}
+        onClick={() => location.route("/learn/temp")}
       >
         To Flashcard Page
       </button>
       <button
+        type="button"
         style={{ padding: "0.5rem 1rem", fontSize: "1rem", cursor: "pointer" }}
-        onClick={onButton2Click}
+        onClick={() => alert("Set page not implemented yet")}
       >
         To Set Page
       </button>
     </main>
   );
-};
-
-export default DashboardPage;
+}
