@@ -27,9 +27,9 @@ const LoginPage = ({ onLogin }: Props) => {
         credentials: "include",
       },
     })
-    .then((res) => {
-      location.href = "/dashboard";
-    }
+      .then((res) => {
+        location.href = "/dashboard";
+      });
   };
 
   return (
