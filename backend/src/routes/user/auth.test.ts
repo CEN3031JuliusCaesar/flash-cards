@@ -1,8 +1,8 @@
 import { testing } from "@oak/oak";
 import { assert, assertEquals } from "@std/assert";
-import { initializeDB, memDB } from "../db.ts";
-import { createAPIRouter } from "./combined.ts";
-import { pbkdf2, toHex } from "../utils/hashing.ts";
+import { initializeDB, memDB } from "../../db.ts";
+import { createAPIRouter } from "../combined.ts";
+import { pbkdf2, toHex } from "../../utils/hashing.ts";
 
 const TEST_USERNAME = "testuser";
 const TEST_PASSWORD = "mypassword123";
@@ -20,7 +20,7 @@ Deno.test({
     const mw = createAPIRouter(db).routes();
 
     const registerCtx = testing.createMockContext({
-      path: "/api/auth/register",
+      path: "/api/user/auth/register",
       method: "POST",
       body: ReadableStream.from([
         JSON.stringify({
@@ -61,7 +61,7 @@ Deno.test({
     db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${hashedPassword}, ${TEST_SALT})`;
 
     const loginCtx = testing.createMockContext({
-      path: "/api/auth/login",
+      path: "/api/user/auth/login",
       method: "POST",
       body: ReadableStream.from([
         JSON.stringify({
@@ -112,7 +112,7 @@ Deno.test({
     db.sql`INSERT INTO Sessions (username, token) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN})`;
 
     const loginCtx = testing.createMockContext({
-      path: "/api/auth/logout",
+      path: "/api/user/auth/logout",
       method: "POST",
       headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
     });
