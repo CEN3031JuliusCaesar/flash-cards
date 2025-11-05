@@ -63,9 +63,7 @@ export class MigrationRunner {
 
     // Separate up and down migrations
     const upMigrations = allMigrationFiles.filter((m) => m.direction === "up");
-    const downMigrations = allMigrationFiles.filter((m) =>
-      m.direction === "down"
-    );
+    const _ = allMigrationFiles.filter((m) => m.direction === "down");
 
     // Find all up migrations that haven't been applied yet
     const pendingMigrations = upMigrations.filter(
