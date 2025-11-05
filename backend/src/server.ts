@@ -1,9 +1,9 @@
-import { Application, send } from "jsr:@oak/oak";
+import { Application, send } from "@oak/oak";
 import { createAPIRouter } from "./routes/combined.ts";
 import { initializeDB, persistentDB } from "./db.ts";
 
 const db = persistentDB();
-initializeDB(db);
+await initializeDB(db);
 
 const app = new Application();
 const PORT = Deno.env.get("PORT") || 8000;

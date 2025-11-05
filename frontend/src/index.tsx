@@ -1,8 +1,12 @@
-import { render } from "preact";
-import { LocationProvider, Route, Router } from "preact-iso";
+import "preact/devtools";
 
-import { Header } from "./components/Header.tsx";
-import { Home } from "./pages/Home/index.tsx";
+import { render } from "preact";
+import { lazy, LocationProvider, Route, Router } from "preact-iso";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
+
+import "./style.css";
 import { NotFound } from "./pages/_404.tsx";
 import "./style.css";
 import LoginPage from "./pages/LoginPage.js";
@@ -30,4 +34,4 @@ export function App() {
   );
 }
 
-render(<App />, document.getElementById("app"));
+render(<App />, document.getElementById("app")!);

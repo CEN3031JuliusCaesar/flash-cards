@@ -1,24 +1,19 @@
 import { Database } from "@db/sqlite";
 import { createCardRouter } from "./cards.ts";
-import { createStreakRouter } from "./streak.ts";
-import { createAuthRouter } from "./auth.ts";
 import { Router } from "@oak/oak";
+import { createUserAPIRouter } from "./user/combined.ts";
 
+// Main API router combining all route modules
 export function createAPIRouter(db: Database) {
   const router = new Router();
 
+  // Card endpoints: /api/cards
   const cardsRouter = createCardRouter(db);
   router.use("/api/cards", cardsRouter.routes(), cardsRouter.allowedMethods());
 
-  const streakRouter = createStreakRouter(db);
-  router.use(
-    "/api/streaks",
-    streakRouter.routes(),
-    streakRouter.allowedMethods(),
-  );
-
-  const authRouter = createAuthRouter(db);
-  router.use("/api/auth", authRouter.routes(), authRouter.allowedMethods());
+  // User endpoints: /api/user
+  const userRouter = createUserAPIRouter(db);
+  router.use("/api/user", userRouter.routes(), userRouter.allowedMethods());
 
   return router;
 }

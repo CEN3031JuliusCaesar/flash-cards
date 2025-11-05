@@ -1,7 +1,7 @@
 import { Router } from "@oak/oak";
 import { Database } from "@db/sqlite";
-import { generateSessionToken } from "../utils/sessionkey.ts";
-import { pbkdf2, toHex } from "../utils/hashing.ts";
+import { generateSessionToken } from "../../utils/sessionkey.ts";
+import { pbkdf2, toHex } from "../../utils/hashing.ts";
 
 export function createAuthRouter(db: Database) {
   const router = new Router();
@@ -11,6 +11,7 @@ export function createAuthRouter(db: Database) {
     ctx.response.status = 404;
   });
 
+  // Login endpoint - Creates a session for a user after validating credentials
   router.post("/login", async (ctx) => {
     if (ctx.request.body.type() !== "json") {
       ctx.response.body = { error: "INVALID_REQUEST" };
@@ -44,10 +45,11 @@ export function createAuthRouter(db: Database) {
       await pbkdf2(body.password, salt, 100000, 64, "SHA-256"),
     );
 
-    const user = db
-      .sql`SELECT username FROM Users WHERE username = ${body.username} AND hash = ${hashedPassword};`[
-        0
-      ]
+    const user = (
+      db.sql`SELECT username FROM Users WHERE username = ${body.username} AND hash = ${hashedPassword};`
+    )[
+      0
+    ]
       ?.username;
     if (!user) {
       // Check if the password is correct.
@@ -67,6 +69,7 @@ export function createAuthRouter(db: Database) {
     ctx.response.status = 200;
   });
 
+  // Logout endpoint - Removes the user's session and clears the cookie
   router.post("/logout", async (ctx) => {
     const SESSION = await ctx.cookies.get("SESSION");
     if (!SESSION) {
@@ -78,6 +81,7 @@ export function createAuthRouter(db: Database) {
     ctx.response.status = 200;
   });
 
+  // Register endpoint - Creates a new user account with hashed password
   router.post("/register", async (ctx) => {
     if (ctx.request.body.type() !== "json") {
       ctx.response.body = { error: "INVALID_REQUEST" };

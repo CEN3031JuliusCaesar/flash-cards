@@ -1,5 +1,5 @@
 import { testing } from "@oak/oak";
-import { assert, assertEquals } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
 import { NO_SESSION_TOKEN } from "./constants.ts";
@@ -9,7 +9,7 @@ Deno.test({
   async fn() {
     const db = memDB();
 
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -39,7 +39,7 @@ Deno.test({
   async fn() {
     const db = memDB();
 
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
