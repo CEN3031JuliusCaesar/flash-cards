@@ -11,6 +11,7 @@ export function createAuthRouter(db: Database) {
     ctx.response.status = 404;
   });
 
+  // Login endpoint - Creates a session for a user after validating credentials
   router.post("/login", async (ctx) => {
     if (ctx.request.body.type() !== "json") {
       ctx.response.body = { error: "INVALID_REQUEST" };
@@ -68,6 +69,7 @@ export function createAuthRouter(db: Database) {
     ctx.response.status = 200;
   });
 
+  // Logout endpoint - Removes the user's session and clears the cookie
   router.delete("/logout", async (ctx) => {
     const SESSION = await ctx.cookies.get("SESSION");
     if (!SESSION) {
@@ -79,6 +81,7 @@ export function createAuthRouter(db: Database) {
     ctx.response.status = 200;
   });
 
+  // Register endpoint - Creates a new user account with hashed password
   router.post("/register", async (ctx) => {
     if (ctx.request.body.type() !== "json") {
       ctx.response.body = { error: "INVALID_REQUEST" };
