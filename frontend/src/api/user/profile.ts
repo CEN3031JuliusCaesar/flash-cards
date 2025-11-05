@@ -10,7 +10,6 @@ export type UpdateProfileParams = {
   description?: string;
 };
 
-// Get user profile by username
 export const getUserProfile = async (
   username: string,
 ): Promise<UserProfile> => {
@@ -18,7 +17,6 @@ export const getUserProfile = async (
   return response.data;
 };
 
-// Update user profile
 export const updateUserProfile = async (
   username: string,
   params: UpdateProfileParams,
