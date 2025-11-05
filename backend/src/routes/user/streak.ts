@@ -1,5 +1,5 @@
 import { Router } from "@oak/oak";
-import { NO_SESSION_TOKEN } from "./constants.ts";
+import { NO_SESSION_TOKEN } from "../constants.ts";
 import { Database } from "@db/sqlite";
 
 export function createStreakRouter(db: Database) {

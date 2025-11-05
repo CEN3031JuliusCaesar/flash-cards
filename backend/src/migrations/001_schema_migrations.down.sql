@@ -1,0 +1,1 @@
+-- Never remove migrations table
