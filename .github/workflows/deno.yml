@@ -19,6 +19,10 @@ jobs:
           deno-version: v2.x
           cache: true
 
+      - name: Init backend
+        working-directory: ./backend
+        run: deno install
+
       - name: Check backend formatting
         working-directory: ./backend
         run: deno fmt --check
@@ -30,6 +34,10 @@ jobs:
       - name: Test backend code
         working-directory: ./backend
         run: deno test -A
+
+      - name: Init frontend
+        working-directory: ./frontend
+        run: deno install
 
       - name: Check frontend formatting
         working-directory: ./frontend
