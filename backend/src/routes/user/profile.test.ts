@@ -18,7 +18,7 @@ Deno.test({
   name: "Get User Profile - Success",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -44,7 +44,7 @@ Deno.test({
   name: "Get User Profile - User Not Found",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -64,7 +64,7 @@ Deno.test({
   name: "Update User Profile - By Owner",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -111,7 +111,7 @@ Deno.test({
   name: "Update User Profile - By Admin",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -159,7 +159,7 @@ Deno.test({
   name: "Update User Profile - Unauthorized Access",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -195,7 +195,7 @@ Deno.test({
   name: "Update User Profile - No Session",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -223,7 +223,7 @@ Deno.test({
   name: "Update User Profile - Invalid Pic ID",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -258,7 +258,7 @@ Deno.test({
   name: "Update User Profile - Invalid Description Length",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -296,7 +296,7 @@ Deno.test({
   name: "Update User Profile - Partial Update (Pic ID Only)",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -342,7 +342,7 @@ Deno.test({
   name: "Update User Profile - Partial Update (Description Only)",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
