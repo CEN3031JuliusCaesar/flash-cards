@@ -28,7 +28,8 @@ export function initializeDB(db: Database) {
       pic_id tinyint DEFAULT 0,
       description varchar(250),
       streak integer DEFAULT 0,
-      streak_expire integer
+      streak_expire integer,
+      is_admin BOOLEAN DEFAULT 0
     );
   `;
 
