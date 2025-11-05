@@ -5,6 +5,7 @@ import { Database } from "@db/sqlite";
 export function createStreakRouter(db: Database) {
   const router = new Router();
 
+  // Get user streak - Returns the current streak for the authenticated user
   router.get("/", async (ctx) => {
     const SESSION = await ctx.cookies.get("SESSION");
     if (SESSION == null) {
@@ -30,6 +31,7 @@ export function createStreakRouter(db: Database) {
     ctx.response.body = data;
   });
 
+  // Update user streak - Increments the user's streak if they're within the valid time window
   router.post("/update", async (ctx) => {
     const SESSION = await ctx.cookies.get("SESSION");
     if (SESSION == null) {
