@@ -68,7 +68,7 @@ export function createAuthRouter(db: Database) {
     ctx.response.status = 200;
   });
 
-  router.post("/logout", async (ctx) => {
+  router.delete("/logout", async (ctx) => {
     const SESSION = await ctx.cookies.get("SESSION");
     if (!SESSION) {
       ctx.response.status = 200;

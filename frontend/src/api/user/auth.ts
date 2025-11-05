@@ -29,6 +29,6 @@ export const register = async (credentials: RegisterParams) => {
 };
 
 export const logout = async () => {
-  const res = await api.post("/api/user/auth/logout");
+  const res = await api.delete("/api/user/auth/logout");
   return res.data;
 };

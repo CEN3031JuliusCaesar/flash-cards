@@ -113,7 +113,7 @@ Deno.test({
 
     const loginCtx = testing.createMockContext({
       path: "/api/user/auth/logout",
-      method: "POST",
+      method: "DELETE",
       headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
     });
 

@@ -27,7 +27,7 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.status, 404);
+    assertEquals(ctx.response.status, 401);
     assertEquals(ctx.response.body, { error: NO_SESSION_TOKEN });
   },
 });
@@ -116,7 +116,7 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.status, 404);
+    assertEquals(ctx.response.status, 401);
     assertEquals(ctx.response.body, { error: NO_SESSION_TOKEN });
   },
 });

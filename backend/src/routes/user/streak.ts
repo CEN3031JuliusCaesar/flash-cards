@@ -11,7 +11,7 @@ export function createStreakRouter(db: Database) {
       ctx.response.body = {
         error: NO_SESSION_TOKEN,
       };
-      ctx.response.status = 404;
+      ctx.response.status = 401;
       return;
     }
 
@@ -36,7 +36,7 @@ export function createStreakRouter(db: Database) {
       ctx.response.body = {
         error: NO_SESSION_TOKEN,
       };
-      ctx.response.status = 404;
+      ctx.response.status = 401;
       return;
     }
 
