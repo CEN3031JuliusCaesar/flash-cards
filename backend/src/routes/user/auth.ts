@@ -29,9 +29,9 @@ export function createAuthRouter(db: Database) {
       return;
     }
 
-    const salt =
-      db.sql`SELECT salt FROM Users WHERE username = ${body.username};`[0]
-        ?.salt;
+    const salt = db
+      .sql`SELECT salt FROM Users WHERE username = ${body.username};`[0]
+      ?.salt;
 
     if (!salt) {
       // Get their salt, and check if the user exists.
@@ -44,9 +44,12 @@ export function createAuthRouter(db: Database) {
       await pbkdf2(body.password, salt, 100000, 64, "SHA-256"),
     );
 
-    const user =
-      db.sql`SELECT username FROM Users WHERE username = ${body.username} AND hash = ${hashedPassword};`[0]
-        ?.username;
+    const user = (
+      db.sql`SELECT username FROM Users WHERE username = ${body.username} AND hash = ${hashedPassword};`
+    )[
+      0
+    ]
+      ?.username;
     if (!user) {
       // Check if the password is correct.
       ctx.response.body = { error: "INVALID_CREDENTIALS" };

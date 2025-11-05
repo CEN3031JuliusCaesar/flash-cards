@@ -42,14 +42,16 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${5}, ${
-             now - 12 * HOURS_IN_SECONDS
-           })`;
-    db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-             now + HOURS_IN_SECONDS
-           })`;
+    db.sql`
+    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
+    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${5}, ${
+      now - 12 * HOURS_IN_SECONDS
+    })`;
+    db.sql`
+    INSERT INTO Sessions (username, token, expires)
+    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      now + HOURS_IN_SECONDS
+    })`;
 
     const ctx = testing.createMockContext({
       path: "/api/user/streaks",
@@ -75,14 +77,16 @@ Deno.test({
     const now = Math.floor(Date.now() / 1000);
 
     // streak expired 50 hours ago
-    db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${10}, ${
-             now - 50 * HOURS_IN_SECONDS
-           })`;
-    db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-             now + HOURS_IN_SECONDS
-           })`;
+    db.sql`
+    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
+    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${10}, ${
+      now - 50 * HOURS_IN_SECONDS
+    })`;
+    db.sql`
+    INSERT INTO Sessions (username, token, expires)
+    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      now + HOURS_IN_SECONDS
+    })`;
 
     const ctx = testing.createMockContext({
       path: "/api/user/streaks",
@@ -127,14 +131,16 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${3}, ${
-             now - 36 * HOURS_IN_SECONDS
-           })`;
-    db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-             now + HOURS_IN_SECONDS
-           })`;
+    db.sql`
+    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
+    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${3}, ${
+      now - 36 * HOURS_IN_SECONDS
+    })`;
+    db.sql`
+    INSERT INTO Sessions (username, token, expires)
+    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      now + HOURS_IN_SECONDS
+    })`;
 
     const ctx = testing.createMockContext({
       path: "/api/user/streaks/update",
@@ -145,7 +151,9 @@ Deno.test({
     await mw(ctx, next);
 
     const updatedUser =
-      db.sql`SELECT streak, streak_expire FROM Users WHERE username = ${TEST_USERNAME};`[0];
+      db.sql`SELECT streak, streak_expire FROM Users WHERE username = ${TEST_USERNAME};`[
+        0
+      ];
     assertEquals(updatedUser.streak, 4);
     const expireTime = parseInt(updatedUser.streak_expire);
     assert(Math.abs(expireTime - now) < ONE_DAY_IN_SECONDS);
@@ -165,14 +173,16 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${2}, ${
-             now - 12 * HOURS_IN_SECONDS
-           })`;
-    db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-             now + HOURS_IN_SECONDS
-           })`;
+    db.sql`
+    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
+    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${2}, ${
+      now - 12 * HOURS_IN_SECONDS
+    })`;
+    db.sql`
+    INSERT INTO Sessions (username, token, expires)
+    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      now + HOURS_IN_SECONDS
+    })`;
 
     const ctx = testing.createMockContext({
       path: "/api/user/streaks/update",
@@ -201,14 +211,16 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    db.sql`INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-           VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${7}, ${
-             now - 60 * HOURS_IN_SECONDS
-           })`;
-    db.sql`INSERT INTO Sessions (username, token, expires)
-           VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-             now + HOURS_IN_SECONDS
-           })`;
+    db.sql`
+    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
+    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${7}, ${
+      now - 60 * HOURS_IN_SECONDS
+    })`;
+    db.sql`
+    INSERT INTO Sessions (username, token, expires)
+    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      now + HOURS_IN_SECONDS
+    })`;
 
     const ctx = testing.createMockContext({
       path: "/api/user/streaks/update",
