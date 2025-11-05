@@ -19,9 +19,26 @@ jobs:
           deno-version: v2.x
           cache: true
 
-      - name: Check formatting
-        run: deno fmt --check backend/
+      - name: Check backend formatting
+        working-directory: ./backend
+        run: deno fmt --check
+
+      - name: Check backend types
+        working-directory: ./backend
+        run: deno check
 
       - name: Test backend code
         working-directory: ./backend
+        run: deno test -A
+
+      - name: Check frontend formatting
+        working-directory: ./frontend
+        run: deno fmt --check
+
+      - name: Check frontend types
+        working-directory: ./frontend
+        run: deno check
+
+      - name: Test frontend code
+        working-directory: ./frontend
         run: deno test -A
