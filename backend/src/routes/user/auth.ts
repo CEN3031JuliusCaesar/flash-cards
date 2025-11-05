@@ -70,7 +70,7 @@ export function createAuthRouter(db: Database) {
   });
 
   // Logout endpoint - Removes the user's session and clears the cookie
-  router.post("/logout", async (ctx) => {
+  router.delete("/logout", async (ctx) => {
     const SESSION = await ctx.cookies.get("SESSION");
     if (!SESSION) {
       ctx.response.status = 200;
