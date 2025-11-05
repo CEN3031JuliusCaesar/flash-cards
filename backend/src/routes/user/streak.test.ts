@@ -16,7 +16,7 @@ Deno.test({
   name: "Streak w/o Session Fails",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -36,7 +36,7 @@ Deno.test({
   name: "Streak returns streak",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -70,7 +70,7 @@ Deno.test({
   name: "Streak is reset on expiration",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -105,7 +105,7 @@ Deno.test({
   name: "Streaks update w/o session fails",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -125,7 +125,7 @@ Deno.test({
   name: "Streak update works in range",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -167,7 +167,7 @@ Deno.test({
   name: "Streak update does nothing if early",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -205,7 +205,7 @@ Deno.test({
   name: "Streak resets after 48h",
   async fn() {
     const db = memDB();
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 

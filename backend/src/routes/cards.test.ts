@@ -9,7 +9,7 @@ Deno.test({
   async fn() {
     const db = memDB();
 
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
@@ -39,7 +39,7 @@ Deno.test({
   async fn() {
     const db = memDB();
 
-    initializeDB(db);
+    await initializeDB(db);
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 

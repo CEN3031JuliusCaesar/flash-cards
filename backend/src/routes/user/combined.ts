@@ -1,6 +1,7 @@
 import { Database } from "@db/sqlite";
 import { createStreakRouter } from "./streak.ts";
 import { createAuthRouter } from "./auth.ts";
+import { createProfileRouter } from "./profile.ts";
 import { Router } from "@oak/oak";
 
 // API router for user-related endpoints including authentication and streak management
@@ -14,6 +15,13 @@ export function createUserAPIRouter(db: Database) {
   // Authentication endpoints: /api/user/auth
   const authRouter = createAuthRouter(db);
   router.use("/auth", authRouter.routes(), authRouter.allowedMethods());
+
+  const profileRouter = createProfileRouter(db);
+  router.use(
+    "/profile",
+    profileRouter.routes(),
+    profileRouter.allowedMethods(),
+  );
 
   return router;
 }

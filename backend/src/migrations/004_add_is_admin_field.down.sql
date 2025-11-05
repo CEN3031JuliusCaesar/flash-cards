@@ -1,0 +1,3 @@
+-- Remove the is_admin column from the Users table
+-- Note: SQLite doesn't support dropping columns directly, so this is a no-op
+-- In a real scenario, you'd need a more complex approach to drop a column in SQLite
