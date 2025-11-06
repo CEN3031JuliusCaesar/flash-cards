@@ -1,6 +1,6 @@
 import "./style.css";
 import { useLocation } from "preact-iso/router";
-import { useState, useEffect } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 
 export default function DashboardPage() {
   const location = useLocation();
@@ -18,7 +18,7 @@ export default function DashboardPage() {
       icon: "🎯",
       path: "/learn/temp",
       color: "#4CAF50",
-      stats: "12 cards ready"
+      stats: "12 cards ready",
     },
     {
       title: "Study Sets",
@@ -26,7 +26,7 @@ export default function DashboardPage() {
       icon: "📚",
       path: "/sets",
       color: "#2196F3",
-      stats: "5 active sets"
+      stats: "5 active sets",
     },
     {
       title: "Progress",
@@ -34,7 +34,7 @@ export default function DashboardPage() {
       icon: "📊",
       path: "/progress",
       color: "#FF9800",
-      stats: "85% accuracy"
+      stats: "85% accuracy",
     },
     {
       title: "Profile",
@@ -42,21 +42,36 @@ export default function DashboardPage() {
       icon: "👤",
       path: "/profile",
       color: "#9C27B0",
-      stats: "Level 3"
-    }
+      stats: "Level 3",
+    },
   ];
 
   const recentActivity = [
-    { action: "Completed", subject: "Spanish Vocabulary", time: "2 hours ago", score: "92%" },
-    { action: "Created", subject: "History Terms", time: "1 day ago", score: "New" },
-    { action: "Studied", subject: "Math Formulas", time: "2 days ago", score: "78%" }
+    {
+      action: "Completed",
+      subject: "Spanish Vocabulary",
+      time: "2 hours ago",
+      score: "92%",
+    },
+    {
+      action: "Created",
+      subject: "History Terms",
+      time: "1 day ago",
+      score: "New",
+    },
+    {
+      action: "Studied",
+      subject: "Math Formulas",
+      time: "2 days ago",
+      score: "78%",
+    },
   ];
 
   const todayStats = {
     cardsStudied: 47,
     timeSpent: "1h 23m",
     streak: 7,
-    accuracy: 89
+    accuracy: 89,
   };
 
   return (
