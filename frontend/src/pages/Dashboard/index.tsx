@@ -108,7 +108,7 @@ export default function DashboardPage() {
                 key={index}
                 class="nav-card"
                 onClick={() => location.route(card.path)}
-                style={{ borderLeft: `4px solid ${card.color}` }}
+                style={{ "--card-accent": card.color }}
               >
                 <div class="nav-card-header">
                   <span class="nav-icon">{card.icon}</span>

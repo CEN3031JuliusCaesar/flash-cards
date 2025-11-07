@@ -1,6 +1,6 @@
 main.dashboard {
   min-height: 100vh;
-  width: 200vh;
+  width: 75vw;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 2rem;
   color: #333;
@@ -8,6 +8,7 @@ main.dashboard {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  border-radius: 20px;
 }
 
 /* Welcome Header Section */
@@ -100,7 +101,7 @@ main.dashboard {
 
 .nav-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
   justify-content: center;
 }
@@ -108,6 +109,13 @@ main.dashboard {
 .nav-card {
   background: white;
   border: 1px solid #e2e8f0;
+
+  @media (prefers-color-scheme: dark) {
+    background: #2d3748;
+    color: #f7fafc;
+    border-color: #4a5568;
+  }
+
   border-radius: 16px;
   padding: 1.5rem;
   cursor: pointer;
@@ -117,11 +125,13 @@ main.dashboard {
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   width: 100%;
+  border-left: 4px solid var(--card-accent);
 }
 
 .nav-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  /*transform: translateY(-4px);*/
+  border-left-width: 10px;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.2);
 }
 
 .nav-card-header {
@@ -332,53 +342,6 @@ main.dashboard {
   transform: translateY(-2px);
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  main.dashboard {
-    padding: 1rem;
-  }
-
-  .welcome-header {
-    padding: 1.5rem 2rem;
-    max-width: 100%;
-  }
-
-  .welcome-header h1 {
-    font-size: 2.2rem;
-  }
-
-  .stats-section {
-    flex-direction: column;
-    gap: 1.5rem;
-    max-width: 100%;
-  }
-
-  .stat-item {
-    padding: 0.5rem;
-  }
-
-  .navigation-section h2 {
-    font-size: 1.6rem;
-  }
-
-  .nav-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .quick-start-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .progress-stats {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
 @media (prefers-color-scheme: dark) {
   main.dashboard {
     background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
@@ -386,7 +349,6 @@ main.dashboard {
 
   .welcome-header,
   .stats-section,
-  .nav-card,
   .today-progress,
   .recent-activity,
   .quick-start {
@@ -443,5 +405,59 @@ main.dashboard {
 
   .progress-circle span {
     color: #f7fafc;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  main.dashboard {
+    width: 100vw;
+    padding: 1rem;
+    background: linear-gradient(135deg, #1a202c50 0%, #2d374850 100%);
+    border-radius: 0;
+
+    @media (prefers-color-scheme: dark) {
+      background: linear-gradient(135deg, #1a202ccc 0%, #2d3748cc 100%);
+    }
+  }
+
+  .welcome-header {
+    padding: 1.5rem 2rem;
+    max-width: 100%;
+  }
+
+  .welcome-header h1 {
+    font-size: 2.2rem;
+  }
+
+  .stats-section {
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 100%;
+  }
+
+  .stat-item {
+    padding: 0.5rem;
+  }
+
+  .navigation-section h2 {
+    font-size: 1.6rem;
+  }
+
+  .nav-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-start-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-stats {
+    flex-direction: column;
+    text-align: center;
   }
 }
