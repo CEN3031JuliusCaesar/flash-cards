@@ -21,7 +21,6 @@ export default function Register() {
   const submit = (e: SubmitEvent) => {
     e.preventDefault();
 
-    console.log("Logging in", { username });
     mutate({ username, password, email });
   };
 

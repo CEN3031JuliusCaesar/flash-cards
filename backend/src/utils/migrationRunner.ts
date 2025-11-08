@@ -72,8 +72,6 @@ export class MigrationRunner {
     );
 
     for (const migration of pendingMigrations) {
-      //console.log(`Applying migration: ${migration.version}_${migration.name}`);
-
       const migrationContent = await Deno.readTextFile(
         `./src/migrations/${migration.version}_${migration.name}.up.sql`,
       );
