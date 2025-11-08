@@ -1,19 +1,22 @@
-export const Snowflake = class Snowflake {
-  static lastTime = 0;
-  static sequence = 0;
-  /**
-   * generate
-   */
+export class Snowflake {
+  static readonly singleton = new Snowflake();
+
+  lastTime = 0n;
+  sequence = 0n;
+
   public static generate() {
-    const TIMESTAMP = Date.now();
-    if (Snowflake.lastTime === TIMESTAMP) {
-      Snowflake.sequence = Snowflake.sequence + 1;
+    return this.singleton.generate();
+  }
+  public generate() {
+    const TIMESTAMP = BigInt(Date.now());
+    if (this.lastTime === TIMESTAMP) {
+      this.sequence = this.sequence + 1n;
     } else {
-      Snowflake.sequence = 0;
+      this.sequence = 0n;
     }
-    Snowflake.lastTime = TIMESTAMP;
-    let result = BigInt(TIMESTAMP) << BigInt(22);
-    result = result | BigInt(Snowflake.sequence);
+    this.lastTime = TIMESTAMP;
+    let result = this.lastTime << 22n;
+    result = result | this.sequence;
     return result.toString(16);
   }
 
@@ -21,4 +24,4 @@ export const Snowflake = class Snowflake {
     if (snowflake.length !== 16) return false;
     return /^[0-9a-f]+$/.test(snowflake);
   }
-};
+}
