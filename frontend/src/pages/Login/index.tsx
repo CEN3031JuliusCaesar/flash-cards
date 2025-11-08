@@ -12,7 +12,7 @@ export default function Login() {
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: (creds: LoginParams) => login(creds),
     onSuccess: () => {
-      location.route("/dashboard");
+      location.route("/");
     },
   });
 
@@ -63,7 +63,7 @@ export default function Login() {
         </form>
 
         <div class="dashboard-button">
-          <button type="button" onClick={() => location.route("/dashboard")}>
+          <button type="button" onClick={() => location.route("/")}>
             Back to Dashboard
           </button>
         </div>

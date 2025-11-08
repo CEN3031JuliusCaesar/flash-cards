@@ -78,7 +78,7 @@ export default function Register() {
 
         {/* Dashboard button */}
         <div class="dashboard-button">
-          <button type="button" onClick={() => location.route("/dashboard")}>
+          <button type="button" onClick={() => location.route("/")}>
             Back to Dashboard
           </button>
         </div>
