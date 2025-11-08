@@ -155,7 +155,7 @@ Deno.test({
         0
       ];
     assertEquals(updatedUser.streak, 4);
-    const expireTime = parseInt(updatedUser.streak_expire);
+    const expireTime = Number.parseInt(updatedUser.streak_expire);
     assert(Math.abs(expireTime - now) < ONE_DAY_IN_SECONDS);
 
     assertEquals(ctx.response.status, 200);
