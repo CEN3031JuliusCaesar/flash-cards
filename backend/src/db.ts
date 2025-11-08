@@ -30,5 +30,3 @@ export async function initializeDB(db: Database) {
   const migrationRunner = new MigrationRunner(db);
   await migrationRunner.runMigrations();
 }
-
-// TODO: Implement Mock Data Initializer.
