@@ -63,9 +63,7 @@ jobs:
 
       - name: Test frontend code
         working-directory: ./frontend
-        run: |
-          deno test --coverage=../cov_frontend -A
-          deno coverage ../cov_frontend --lcov --output=../coverage/frontend.lcov
+        run: deno test -A
 
       - name: Lint frontend code
         working-directory: ./frontend
@@ -77,10 +75,9 @@ jobs:
         with:
           coverage-files: |
             coverage/backend.lcov
-            coverage/frontend.lcov
           github-token: ${{ secrets.GITHUB_TOKEN }}
           update-comment: true
           artifact-name: code-coverage-report
 
       - name: Cleanup coverage dirs
-        run: rm -rf cov_backend cov_frontend
+        run: rm -rf cov_backend
