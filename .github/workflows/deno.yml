@@ -4,10 +4,15 @@ name: Deno CI
 on:
   push:
     branches: ["**"]
+  pull_request:
+    branches: [main]
 
 jobs:
   deno-check:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
 
     steps:
       - name: Checkout code
@@ -33,7 +38,9 @@ jobs:
 
       - name: Test backend code
         working-directory: ./backend
-        run: deno test --coverage -A
+        run: |
+          deno test --coverage=../cov_backend -A
+          deno coverage ../cov_backend --lcov --output ../coverage/backend.lcov
 
       - name: Lint backend code
         working-directory: ./backend
@@ -53,8 +60,27 @@ jobs:
 
       - name: Test frontend code
         working-directory: ./frontend
-        run: deno test --coverage -A
+        run: |
+          deno test --coverage=../cov_frontend -A
+          deno coverage ../cov_frontend --lcov --output ../coverage/frontend.lcov
 
       - name: Lint frontend code
         working-directory: ./frontend
         run: deno lint
+
+      - name: Create coverage directory
+        run: mkdir -p coverage
+
+      - name: Report LCOV
+        uses: zgosalvez/github-actions-report-lcov@v4
+        if: github.event_name == 'pull_request'
+        with:
+          coverage-files: |
+            coverage/backend.lcov
+            coverage/frontend.lcov
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          update-comment: true
+          artifact-name: code-coverage-report
+
+      - name: Cleanup coverage dirs
+        run: rm -rf cov_backend cov_frontend
