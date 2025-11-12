@@ -24,6 +24,9 @@ jobs:
           deno-version: v2.x
           cache: true
 
+      - name: Create coverage directory
+        run: mkdir -p coverage
+
       - name: Init backend
         working-directory: ./backend
         run: deno install
@@ -67,9 +70,6 @@ jobs:
       - name: Lint frontend code
         working-directory: ./frontend
         run: deno lint
-
-      - name: Create coverage directory
-        run: mkdir -p coverage
 
       - name: Report LCOV
         uses: zgosalvez/github-actions-report-lcov@v4
