@@ -33,7 +33,11 @@ jobs:
 
       - name: Test backend code
         working-directory: ./backend
-        run: deno test -A
+        run: deno test --coverage -A
+
+      - name: Lint backend code
+        working-directory: ./backend
+        run: deno lint
 
       - name: Init frontend
         working-directory: ./frontend
@@ -49,4 +53,8 @@ jobs:
 
       - name: Test frontend code
         working-directory: ./frontend
-        run: deno test -A
+        run: deno test --coverage -A
+
+      - name: Lint frontend code
+        working-directory: ./frontend
+        run: deno lint
