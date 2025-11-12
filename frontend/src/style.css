@@ -1,4 +1,66 @@
+/* ==========================================
+   CSS VARIABLES
+   ========================================== */
 :root {
+  /* Primary Colors*/
+  --color-primary: #667eea;
+  --color-primary-dark: #764ba2;
+  --color-accent: #f093fb;
+
+  /* Neutral Colors */
+  --color-text-primary: #1a202c;
+  --color-text-secondary: #4a5568;
+  --color-text-tertiary: #718096;
+  --color-text-light: #555;
+
+  /* Background Colors */
+  --color-bg-white: #ffffff;
+  --color-bg-light: #f7fafc;
+  --color-bg-dark: #2d3748;
+  --color-bg-gray: #edf2f7;
+
+  /* Utility Colors */
+  --color-white: #ffffff;
+  --color-gray-light: #e0e0e0;
+
+  /* Border Colors */
+  --color-border: #e2e8f0;
+  --color-border-dark: #4a5568;
+
+  /* Status Colors */
+  --color-success: #4CAF50;
+  --color-info: #2196F3;
+  --color-warning: #FF9800;
+  --color-purple: #9C27B0;
+
+  /* Gradients */
+  --gradient-space: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #667eea);
+  --gradient-space-short: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+  --gradient-space-light: linear-gradient(135deg, #90cdf4, #a78bfa);
+  --gradient-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-dark1: linear-gradient(135deg, #1a202c50 0%, #2d374850 100%);
+  --gradient-dark2: linear-gradient(135deg, #1a202ccc 0%, #2d3748cc 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-sm-strong: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.2);
+  --shadow-text: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+  /* Spacing */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
@@ -13,6 +75,13 @@
   -webkit-text-size-adjust: 100%;
 }
 
+/* ==========================================
+   GLOBAL STYLES & RESETS
+   ========================================== */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   background-image: url("./Space.jpg");
@@ -22,12 +91,27 @@ body {
   background-attachment: fixed;
 }
 
+/* ==========================================
+   LAYOUT & STRUCTURE
+   ========================================== */
 #app {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
+main {
+  flex: auto;
+  display: flex;
+  align-items: center;
+  max-width: 1600px; /*Changed to 1600px for it to center the dashboard page */
+  margin: 0 auto;
+  text-align: center;
+}
+
+/* ==========================================
+   HEADER & NAVIGATION
+   ========================================== */
 header {
   display: flex;
   justify-content: flex-end;
@@ -52,28 +136,27 @@ header a:hover {
   background-color: #0008;
 }
 
-main {
-  flex: auto;
-  display: flex;
-  align-items: center;
-  max-width: 1280px;
-  margin: 0 auto;
-  text-align: center;
-}
-
+/* ==========================================
+   RESPONSIVE DESIGN
+   ========================================== */
 @media (min-width: 768px) {
   main {
     margin: 2rem;
   }
 }
 
-@media (prefers-color-scheme: dark) {
+/* ==========================================
+   DARK MODE
+   ========================================== */
+/* @media (prefers-color-scheme: dark) {
   :root {
+    --color-text-primary: #f7fafc;
+    --color-text-secondary: #e2e8f0;
+    --color-bg-white: #2d3748;
+    --color-bg-light: #4a5568;
+    --color-border: #4a5568;
+    --gradient-background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
     color: #ccc;
     background-color: #1a1a1a;
   }
-}
-
-* {
-  box-sizing: border-box;
-}
+} */
