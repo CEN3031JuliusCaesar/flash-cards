@@ -70,6 +70,7 @@ jobs:
         run: deno lint
 
       - name: Setup LCOV
+        if: github.event_name == 'pull_request'
         uses: hrishikesh-kadam/setup-lcov@v1
 
       - name: Report LCOV
