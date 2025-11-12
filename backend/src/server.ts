@@ -26,5 +26,5 @@ app.use(async (ctx, _next) => {
   }
 });
 
-console.log(`🚀 Server starting at http://localhost:${PORT}`);
+console.info(`🚀 Server starting at http://localhost:${PORT}`);
 await app.listen({ port: Number(PORT) });

@@ -34,7 +34,7 @@ export class MigrationRunner {
 
     // Sort by version number
     return migrationFiles.sort((a, b) =>
-      parseInt(a.version) - parseInt(b.version)
+      Number.parseInt(a.version) - Number.parseInt(b.version)
     );
   }
 
@@ -72,8 +72,6 @@ export class MigrationRunner {
     );
 
     for (const migration of pendingMigrations) {
-      //console.log(`Applying migration: ${migration.version}_${migration.name}`);
-
       const migrationContent = await Deno.readTextFile(
         `./src/migrations/${migration.version}_${migration.name}.up.sql`,
       );
