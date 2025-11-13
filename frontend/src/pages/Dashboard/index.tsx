@@ -105,6 +105,7 @@ export default function DashboardPage() {
           <div class="nav-grid">
             {navigationCards.map((card, index) => (
               <button
+                type="button"
                 key={index}
                 class={`nav-card ${card.colorClass}`}
                 onClick={() => location.route(card.path)}
