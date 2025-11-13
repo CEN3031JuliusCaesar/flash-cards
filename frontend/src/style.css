@@ -28,10 +28,10 @@
   --color-border-dark: #4a5568;
 
   /* Status Colors */
-  --color-success: #4CAF50;
-  --color-info: #2196F3;
-  --color-warning: #FF9800;
-  --color-purple: #9C27B0;
+  --color-success: #4caf50;
+  --color-info: #2196f3;
+  --color-warning: #ff9800;
+  --color-purple: #9c27b0;
 
   /* Gradients */
   --gradient-space: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #667eea);

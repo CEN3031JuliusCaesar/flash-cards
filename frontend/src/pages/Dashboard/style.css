@@ -180,6 +180,23 @@ main.dashboard {
   transform: translateX(var(--border-accent));
 }
 
+/* Navigation card color variants using existing status color variables */
+.nav-card.card-success {
+  border-left-color: var(--color-success);
+}
+
+.nav-card.card-info {
+  border-left-color: var(--color-info);
+}
+
+.nav-card.card-warning {
+  border-left-color: var(--color-warning);
+}
+
+.nav-card.card-purple {
+  border-left-color: var(--color-purple);
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -215,7 +232,8 @@ main.dashboard {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: conic-gradient(var(--color-primary) 0deg 320deg, #e0e0e0 320deg 360deg);
+  background: conic-gradient(var(--color-primary) 0deg 320deg,
+      #e0e0e0 320deg 360deg);
   display: flex;
   align-items: center;
   justify-content: center;
