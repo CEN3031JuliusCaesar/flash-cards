@@ -17,7 +17,7 @@ export default function DashboardPage() {
       description: "Start learning with flashcards",
       icon: "🎯",
       path: "/learn/temp",
-      colorClass: "card-success",
+      colorClass: "card-green",
       stats: "12 cards ready",
     },
     {
@@ -25,7 +25,7 @@ export default function DashboardPage() {
       description: "Manage your flashcard collections",
       icon: "📚",
       path: "/sets",
-      colorClass: "card-info",
+      colorClass: "card-blue",
       stats: "5 active sets",
     },
     {
@@ -33,7 +33,7 @@ export default function DashboardPage() {
       description: "View your learning analytics",
       icon: "📊",
       path: "/progress",
-      colorClass: "card-warning",
+      colorClass: "card-orange",
       stats: "85% accuracy",
     },
     {
