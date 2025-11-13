@@ -77,6 +77,58 @@ setsRouter.post("/create", async (ctx) => {
   ctx.response.status = 200;
 });
 
+
+setsRouter.delete("/:setId", async (ctx) => {
+  const { setId } = ctx.params;
+
+  console.info(`DELETE /sets/${setId}`);
+
+  const SESSION = await ctx.cookies.get("SESSION");
+  const USERNAME = db.sql`SELECT username FROM Sessions 
+  WHERE token = ${SESSION} 
+  AND expires > current_timestamp;`;
+
+  // Must be set owner to delete.
+  if (USERNAME == null) {
+    ctx.response.body = {
+      error: UNAUTHORIZED,
+    };
+    ctx.response.status = 403;
+    return;
+  }
+
+  // Validate setId is a snowflake.
+  if (!Snowflake.isSnowflake(setId!)) {
+    ctx.response.body = {
+      error: "INVALID_SET_ID",
+    };
+    ctx.response.status = 400;
+    return;
+  }
+
+  const SET = db.sql`SELECT * FROM Sets 
+    WHERE id = ${setId} 
+    AND Owner = ${USERNAME};`;
+
+  // Validate that the set exists.
+  if (SET.length === 0) {
+    ctx.response.body = {
+      error: "SET_NOT_FOUND",
+    };
+    ctx.response.status = 404;
+    return;
+  }
+
+  db.sql`DELETE FROM Sets 
+  WHERE id = ${setId};`;
+
+  ctx.response.body = {
+    id: setId,
+  }
+  ctx.response.status = 200;
+});
+
+
 /**
  * Update a set's owner or title. If you want to update one or the other, just put the old one in the request JSON.
  */
@@ -89,8 +141,6 @@ setsRouter.patch("/:setId", async (ctx) => {
   const USERNAME = db.sql`SELECT username FROM Sessions 
   WHERE token = ${SESSION} 
   AND expires > current_timestamp;`;
-
-  
 
 
 
