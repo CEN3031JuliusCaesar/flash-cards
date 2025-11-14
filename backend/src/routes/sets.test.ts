@@ -352,7 +352,12 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.body, { sets: [] });
+    assertEquals(ctx.response.body, {
+      id: "combined-pseudo-set",
+      owner: TEST_USERNAME,
+      title: "Tracked Sets Combined",
+      cards: [],
+    });
     assertEquals(ctx.response.status, 200);
   },
 });
@@ -383,16 +388,14 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      sets: [{
-        id: TEST_SET_ID,
-        owner: TEST_USERNAME,
-        title: TEST_SET_TITLE,
-        cards: [{
-          id: TEST_CARD_ID,
-          set_id: TEST_SET_ID,
-          front: TEST_CARD_FRONT,
-          back: TEST_CARD_BACK,
-        }],
+      id: "combined-pseudo-set",
+      owner: TEST_USERNAME,
+      title: "Tracked Sets Combined",
+      cards: [{
+        id: TEST_CARD_ID,
+        set_id: TEST_SET_ID,
+        front: TEST_CARD_FRONT,
+        back: TEST_CARD_BACK,
       }],
     });
     assertEquals(ctx.response.status, 200);
@@ -599,28 +602,21 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      sets: [
+      id: "combined-pseudo-set",
+      owner: TEST_USERNAME,
+      title: "Tracked Sets Combined",
+      cards: [
         {
-          id: TEST_SET_ID,
-          owner: TEST_USERNAME,
-          title: TEST_SET_TITLE,
-          cards: [{
-            id: TEST_CARD_ID,
-            set_id: TEST_SET_ID,
-            front: TEST_CARD_FRONT,
-            back: TEST_CARD_BACK,
-          }],
+          id: TEST_CARD_ID,
+          set_id: TEST_SET_ID,
+          front: TEST_CARD_FRONT,
+          back: TEST_CARD_BACK,
         },
         {
-          id: set2Id,
-          owner: TEST_USERNAME,
-          title: set2Title,
-          cards: [{
-            id: TEST_CARD_ID_2,
-            set_id: set2Id,
-            front: TEST_CARD_FRONT_2,
-            back: TEST_CARD_BACK_2,
-          }],
+          id: TEST_CARD_ID_2,
+          set_id: set2Id,
+          front: TEST_CARD_FRONT_2,
+          back: TEST_CARD_BACK_2,
         },
       ],
     });

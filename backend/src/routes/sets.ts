@@ -220,7 +220,7 @@ export function createSetsRouter(db: Database) {
     return;
   });
 
-  // get all tracked sets for user with study option
+  // get all tracked sets for user with study option as a single combined set
   router.get("/tracked", async (ctx) => {
     const studyParam = ctx.request.url.searchParams.get("study");
     const study = studyParam !== null ? studyParam : null;
@@ -256,22 +256,21 @@ export function createSetsRouter(db: Database) {
         WHERE ts.username = ${user};
       `;
 
-    const response = {
-      sets: trackedSets.map((set) => ({
-        id: set.id,
-        owner: set.owner,
-        title: set.title,
-        cards: [] as {
-          id: string;
-          set_id: string;
-          front: string;
-          back: string;
-        }[],
-      })),
+    // Create a combined pseudo-set to hold all cards
+    const combinedSet = {
+      id: "combined-pseudo-set",
+      owner: user,
+      title: "Tracked Sets Combined",
+      cards: [] as {
+        id: string;
+        set_id: string;
+        front: string;
+        back: string;
+      }[],
     };
 
     if (study !== null) {
-      // Get relevant cards for all tracked sets
+      // Get relevant cards for all tracked sets and combine them
       let pointsOffset = 0;
       if (study !== "true") {
         const parsedOffset = parseInt(study);
@@ -282,12 +281,12 @@ export function createSetsRouter(db: Database) {
 
       // Pass offset as negative to make cards appear to have fewer points,
       // making them due for review more frequently
-      for (const set of response.sets) {
+      for (const set of trackedSets) {
         const cards = getRelevantCards(db, user, set.id, -pointsOffset);
-        set.cards = cards;
+        combinedSet.cards.push(...cards);
       }
     } else {
-      for (const set of response.sets) {
+      for (const set of trackedSets) {
         const cards: {
           id: string;
           set_id: string;
@@ -298,11 +297,11 @@ export function createSetsRouter(db: Database) {
             FROM Cards c
             WHERE c.set_id = ${set.id};
           `;
-        set.cards = cards;
+        combinedSet.cards.push(...cards);
       }
     }
 
-    ctx.response.body = response;
+    ctx.response.body = combinedSet;
   });
 
   // get set from id with study option
