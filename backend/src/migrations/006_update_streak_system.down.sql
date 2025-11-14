@@ -1,0 +1,3 @@
+-- sqlite doesn't support drop column, so there's no way to remove the columns
+-- the columns will remain in the database, but the application logic will ignore them
+-- the down migration is essentially a no-op for now
