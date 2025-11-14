@@ -2,10 +2,33 @@ import { Router } from "@oak/oak";
 import { NO_SESSION_TOKEN } from "../constants.ts";
 import { Database } from "@db/sqlite";
 
+// helper function to update user streak - updates the streak timestamps
+export function updateStreakForUser(db: Database, username: string) {
+  // get the current time
+  const now = Math.floor(Date.now() / 1000);
+
+  // update the streak timestamps
+  const result = db.sql`
+    UPDATE Users
+    SET
+      -- only set streak_start_date if this is the first update or the last update was >36 hours ago
+      streak_start_date = CASE
+        WHEN streak_last_updated IS NULL OR streak_last_updated < (${now} - 36 * 3600)
+        THEN ${now}
+        ELSE streak_start_date
+      END,
+      -- always update the last updated time to now
+      streak_last_updated = ${now}
+    WHERE username = ${username};
+  `;
+
+  return result;
+}
+
 export function createStreakRouter(db: Database) {
   const router = new Router();
 
-  // Get user streak - Returns the current streak for the authenticated user
+  // get user streak - calculates the current streak based on date difference
   router.get("/", async (ctx) => {
     const SESSION = await ctx.cookies.get("SESSION");
     if (SESSION == null) {
@@ -18,44 +41,21 @@ export function createStreakRouter(db: Database) {
 
     const data = db.sql`
       SELECT
-          CASE
-              WHEN u.streak_expire < (strftime('%s', 'now') - 48 * 3600) THEN 0
-              ELSE u.streak
-          END AS current_streak
+        CASE
+          -- if last updated is more than 36 hours ago, streak is 0
+          WHEN u.streak_last_updated < (strftime('%s', 'now') - 36 * 3600) THEN 0
+          -- if both dates exist, calculate the streak as the difference in days
+          WHEN u.streak_start_date IS NOT NULL AND u.streak_last_updated IS NOT NULL THEN
+            (strftime('%s', 'now') - u.streak_start_date) / 86400 + 1
+          -- if start date is null but last updated is not, streak is 1
+          WHEN u.streak_start_date IS NULL AND u.streak_last_updated IS NOT NULL THEN 1
+          -- default to 0 if no streak data exists
+          ELSE 0
+        END AS current_streak
       FROM Users u
       JOIN Sessions s ON u.username = s.username
       WHERE s.token = ${SESSION}
         AND s.expires > strftime('%s', 'now');
-    `;
-
-    ctx.response.body = data;
-  });
-
-  // Update user streak - Increments the user's streak if they're within the valid time window
-  router.post("/update", async (ctx) => {
-    const SESSION = await ctx.cookies.get("SESSION");
-    if (SESSION == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 401;
-      return;
-    }
-
-    const data = db.sql`
-      UPDATE Users
-      SET
-          streak = streak + 1,
-          streak_expire = strftime('%s', date('now'))
-      WHERE username IN (
-          SELECT username
-          FROM Sessions
-          WHERE token = ${SESSION}
-            AND expires > strftime('%s', 'now')
-      )
-      AND streak_expire BETWEEN
-          (strftime('%s', 'now') - 48 * 3600)
-          AND (strftime('%s', 'now') - 24 * 3600);
     `;
 
     ctx.response.body = data;
