@@ -37,9 +37,3 @@ CREATE TABLE IF NOT EXISTS Sessions (
   username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
   expires integer
 );
-
-CREATE TABLE IF NOT EXISTS CanEdit (
-  username varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
-  set_id char(16) REFERENCES Sets(id) ON DELETE CASCADE,
-  PRIMARY KEY (username, set_id)
-);

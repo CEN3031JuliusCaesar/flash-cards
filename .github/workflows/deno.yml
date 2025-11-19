@@ -42,7 +42,7 @@ jobs:
       - name: Test backend code
         working-directory: ./backend
         run: |
-          deno test --coverage=../cov_backend -A
+          deno test --coverage=../cov_backend -A --parallel
           deno coverage ../cov_backend --lcov --output=../coverage/backend.lcov
 
       - name: Lint backend code
@@ -63,7 +63,7 @@ jobs:
 
       - name: Test frontend code
         working-directory: ./frontend
-        run: deno test -A
+        run: deno test -A --parallel
 
       - name: Lint frontend code
         working-directory: ./frontend

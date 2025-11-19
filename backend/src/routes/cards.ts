@@ -13,7 +13,7 @@ export function createCardRouter(db: Database) {
   const router = new Router();
 
   // Create a new card
-  router.post("/", async (ctx) => {
+  router.post("/create", async (ctx) => {
     const session = await ctx.cookies.get("SESSION");
 
     if (session == null) {
@@ -69,11 +69,8 @@ export function createCardRouter(db: Database) {
 
     // Check if user is the owner OR has CanEdit permission
     const isOwner = setOwner === username;
-    const hasEditPermission = db.sql`
-      SELECT 1 FROM CanEdit WHERE username = ${username} AND set_id = ${set_id};
-    `.length > 0;
 
-    if (!isOwner && !hasEditPermission) {
+    if (!isOwner) {
       ctx.response.body = {
         error: UNAUTHORIZED,
       };

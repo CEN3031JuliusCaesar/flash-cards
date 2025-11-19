@@ -53,7 +53,7 @@ export function genSalt() {
 }
 
 if (import.meta.main) {
-  const [password, saltHex, iters, len, alg] = Deno.args;
+  const [password, saltHex] = Deno.args;
   if (!password) {
     console.error(
       "Usage: deno run -A hashing.ts <password> [salt_hex] [iterations=100000] [keylen=64] [SHA-256|SHA-512]",
