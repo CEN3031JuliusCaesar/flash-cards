@@ -25,9 +25,7 @@ export function createSetsRouter(db: Database) {
   }
  */
   router.post("/create", async (ctx) => {
-
     const SESSION = await ctx.cookies.get("SESSION");
-    
 
     if (SESSION == null) {
       ctx.response.body = {
@@ -40,7 +38,7 @@ export function createSetsRouter(db: Database) {
     const USERNAME = db.sql`SELECT username FROM Sessions
       WHERE token = ${SESSION}
       AND expires > strftime('%s', 'now');`[0]?.username;
-    
+
     if (USERNAME === undefined) {
       ctx.response.body = {
         error: UNAUTHORIZED,
@@ -48,8 +46,7 @@ export function createSetsRouter(db: Database) {
       ctx.response.status = 403;
       return;
     }
-    
-  
+
     const { title } = await ctx.request.body.json();
 
     if (typeof title !== "string" || title.length === 0 || title.length > 50) {
@@ -76,7 +73,6 @@ export function createSetsRouter(db: Database) {
   router.delete("/:setId", async (ctx) => {
     const { setId } = ctx.params;
 
-
     const SESSION = await ctx.cookies.get("SESSION");
 
     if (SESSION == null) {
@@ -90,7 +86,7 @@ export function createSetsRouter(db: Database) {
     const USERNAME = db.sql`SELECT username FROM Sessions
       WHERE token = ${SESSION}
       AND expires > strftime('%s', 'now');`[0]?.username;
-    
+
     // Must be set owner to delete.
     if (USERNAME == undefined) {
       ctx.response.body = {
@@ -115,7 +111,7 @@ export function createSetsRouter(db: Database) {
 
     // Validate that the set exists & is owned.
     if (SET.length === 0) {
-      if(db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
+      if (db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
         ctx.response.body = {
           error: UNAUTHORIZED,
         };
@@ -144,7 +140,6 @@ export function createSetsRouter(db: Database) {
   router.patch("/:setId", async (ctx) => {
     const { setId } = ctx.params;
 
-
     const SESSION = await ctx.cookies.get("SESSION");
 
     // Session authorization.
@@ -155,7 +150,6 @@ export function createSetsRouter(db: Database) {
       ctx.response.status = 403;
       return;
     }
-
 
     const USERNAME = db.sql`SELECT username FROM Sessions
       WHERE token = ${SESSION}
@@ -184,7 +178,7 @@ export function createSetsRouter(db: Database) {
 
     // Validate that the set exists.
     if (SET.length === 0) {
-      if(db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
+      if (db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
         ctx.response.body = {
           error: UNAUTHORIZED,
         };
@@ -197,7 +191,6 @@ export function createSetsRouter(db: Database) {
       }
       return;
     }
-
 
     const { newOwner, newTitle } = await ctx.request.body.json();
 
