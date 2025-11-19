@@ -55,7 +55,7 @@ Deno.test({
     const mw = createAPIRouter(db).routes();
 
     const hashedPassword = toHex(
-      await pbkdf2(TEST_PASSWORD, TEST_SALT, 100000, 64, "SHA-256"),
+      await pbkdf2(TEST_PASSWORD, TEST_SALT),
     );
 
     db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${hashedPassword}, ${TEST_SALT})`;
@@ -105,7 +105,7 @@ Deno.test({
     const mw = createAPIRouter(db).routes();
 
     const hashedPassword = toHex(
-      await pbkdf2(TEST_PASSWORD, TEST_SALT, 100000, 64, "SHA-256"),
+      await pbkdf2(TEST_PASSWORD, TEST_SALT),
     );
 
     db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${hashedPassword}, ${TEST_SALT})`;

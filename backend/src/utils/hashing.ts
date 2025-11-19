@@ -47,6 +47,11 @@ export function toHex(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+export function genSalt() {
+  return crypto.getRandomValues(new Uint8Array(16))
+    .reduce((s, b) => s + b.toString(16).padStart(2, "0"), "");
+}
+
 if (import.meta.main) {
   const [password, saltHex, iters, len, alg] = Deno.args;
   if (!password) {
@@ -56,16 +61,11 @@ if (import.meta.main) {
     Deno.exit(1);
   }
 
-  const salt = saltHex ||
-    crypto.getRandomValues(new Uint8Array(16))
-      .reduce((s, b) => s + b.toString(16).padStart(2, "0"), "");
+  const salt = saltHex || genSalt();
 
   const key = await pbkdf2(
     password,
     salt,
-    Number(iters) || 100_000,
-    Number(len) || 64,
-    (alg === "SHA-512" ? "SHA-512" : "SHA-256") as "SHA-256" | "SHA-512",
   );
 
   console.info("salt:", salt);

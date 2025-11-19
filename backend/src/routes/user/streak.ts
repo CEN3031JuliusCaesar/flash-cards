@@ -30,8 +30,8 @@ export function createStreakRouter(db: Database) {
 
   // get user streak - calculates the current streak based on date difference
   router.get("/", async (ctx) => {
-    const SESSION = await ctx.cookies.get("SESSION");
-    if (SESSION == null) {
+    const session = await ctx.cookies.get("SESSION");
+    if (session == null) {
       ctx.response.body = {
         error: NO_SESSION_TOKEN,
       };
@@ -54,7 +54,7 @@ export function createStreakRouter(db: Database) {
         END AS current_streak
       FROM Users u
       JOIN Sessions s ON u.username = s.username
-      WHERE s.token = ${SESSION}
+      WHERE s.token = ${session}
         AND s.expires > strftime('%s', 'now');
     `;
 

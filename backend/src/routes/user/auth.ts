@@ -1,7 +1,7 @@
 import { Router } from "@oak/oak";
 import { Database } from "@db/sqlite";
 import { generateSessionToken } from "../../utils/sessionkey.ts";
-import { pbkdf2, toHex } from "../../utils/hashing.ts";
+import { genSalt, pbkdf2, toHex } from "../../utils/hashing.ts";
 
 export function createAuthRouter(db: Database) {
   const router = new Router();
@@ -42,7 +42,7 @@ export function createAuthRouter(db: Database) {
     }
 
     const hashedPassword = toHex(
-      await pbkdf2(body.password, salt, 100000, 64, "SHA-256"),
+      await pbkdf2(body.password, salt),
     );
 
     const user = (
@@ -71,12 +71,12 @@ export function createAuthRouter(db: Database) {
 
   // Logout endpoint - Removes the user's session and clears the cookie
   router.delete("/logout", async (ctx) => {
-    const SESSION = await ctx.cookies.get("SESSION");
-    if (!SESSION) {
+    const session = await ctx.cookies.get("SESSION");
+    if (!session) {
       ctx.response.status = 200;
       return;
     }
-    db.sql`DELETE FROM Sessions WHERE token = ${SESSION};`;
+    db.sql`DELETE FROM Sessions WHERE token = ${session};`;
     ctx.cookies.delete("SESSION");
     ctx.response.status = 200;
   });
@@ -101,12 +101,10 @@ export function createAuthRouter(db: Database) {
       return;
     }
 
-    const salt = crypto
-      .getRandomValues(new Uint8Array(16))
-      .reduce((acc, byte) => acc + byte.toString(16).padStart(2, "0"), "");
+    const salt = genSalt();
 
     const hashedPassword = toHex(
-      await pbkdf2(body.password, salt, 100000, 64, "SHA-256"),
+      await pbkdf2(body.password, salt),
     );
 
     if (

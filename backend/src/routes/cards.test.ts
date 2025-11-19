@@ -14,8 +14,12 @@ Deno.test({
     const mw = createAPIRouter(db).routes();
 
     db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${"testuser"}, ${"testemail@service.webemail"}, ${"c297e57206c7aee60fe2ede4bee13021542d0d472fa690c76557cdccf8610cc6cc63ff0d6f6a2f6433c577c5326d3023aabdedd04e453b43bfe1fd1ccc9cb728"}, ${"salt"})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${"1111111111111111"}, ${"testuser"}, ${"Test Set"})`;
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${"1234123412341234"}, ${"1111111111111111"}, ${"Front"}, ${"Back"})`;
+    db.sql`INSERT INTO Sets (id, rowid_int, owner, title) VALUES (${"1111111111111111"}, ${
+      BigInt("0x" + "1111111111111111")
+    }, ${"testuser"}, ${"Test Set"})`;
+    db.sql`INSERT INTO Cards (id, rowid_int, set_id, front, back) VALUES (${"1234123412341234"}, ${
+      BigInt("0x" + "1234123412341234")
+    }, ${"1111111111111111"}, ${"Front"}, ${"Back"})`;
 
     const cardCtx = testing.createMockContext({
       path: `/api/cards/1234123412341234`,
@@ -44,8 +48,12 @@ Deno.test({
     const mw = createAPIRouter(db).routes();
 
     db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${"testuser"}, ${"testemail@service.webemail"}, ${"c297e57206c7aee60fe2ede4bee13021542d0d472fa690c76557cdccf8610cc6cc63ff0d6f6a2f6433c577c5326d3023aabdedd04e453b43bfe1fd1ccc9cb728"}, ${"salt"})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${"1111111111111111"}, ${"testuser"}, ${"Test Set"})`;
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${"1234123412341234"}, ${"1111111111111111"}, ${"Front"}, ${"Back"})`;
+    db.sql`INSERT INTO Sets (id, rowid_int, owner, title) VALUES (${"1111111111111111"}, ${
+      BigInt("0x" + "1111111111111111")
+    }, ${"testuser"}, ${"Test Set"})`;
+    db.sql`INSERT INTO Cards (id, rowid_int, set_id, front, back) VALUES (${"1234123412341234"}, ${
+      BigInt("0x" + "1234123412341234")
+    }, ${"1111111111111111"}, ${"Front"}, ${"Back"})`;
     db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${"testuser"}, ${"token"}, ${
       Date.now() + 60 * 60 * 24
     })`;

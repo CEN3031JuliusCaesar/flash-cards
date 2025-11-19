@@ -11,12 +11,14 @@ CREATE TABLE IF NOT EXISTS Users (
 
 CREATE TABLE IF NOT EXISTS Sets (
   id char(16) PRIMARY KEY,
+  rowid_int INTEGER NOT NULL,
   owner varchar(32) REFERENCES Users(username) ON DELETE CASCADE ON UPDATE CASCADE,
   title varchar(50) NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS Cards (
   id char(16) PRIMARY KEY,
+  rowid_int INTEGER NOT NULL,
   set_id char(16) REFERENCES Sets(id) ON DELETE CASCADE,
   front varchar(1000) NOT NULL,
   back varchar(1000) NOT NULL

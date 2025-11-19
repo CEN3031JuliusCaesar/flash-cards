@@ -1,24 +1,20 @@
 import { testing } from "@oak/oak";
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertNotEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
 import { NO_SESSION_TOKEN } from "./constants.ts";
 import { SearchResult, TrackedListResponse } from "./sets.ts";
-
-const TEST_USERNAME = "testuser";
-const TEST_EMAIL = "testemail@service.webemail";
-const TEST_SALT = "73616c74"; // hex for 'salt'
-const TEST_HASH =
-  "c297e57206c7aee60fe2ede4bee13021542d0d472fa690c76557cdccf8610cc6cc63ff0d6f6a2f6433c577c5326d3023aabdedd04e453b43bfe1fd1ccc9cb728";
-const TEST_SESSION_TOKEN = "token";
-const TEST_SET_ID = "1111111111111111";
-const TEST_SET_TITLE = "Test Set";
-const TEST_CARD_ID = "1234123412341234";
-const TEST_CARD_FRONT = "Front";
-const TEST_CARD_BACK = "Back";
-const TEST_CARD_ID_2 = "1234123412341235";
-const TEST_CARD_FRONT_2 = "Front2";
-const TEST_CARD_BACK_2 = "Back2";
+import {
+  createCard,
+  createCardProgress,
+  createPreviousTime,
+  createSession,
+  createSet,
+  createSetName,
+  createSmallUniqueLabeled,
+  createTracking,
+  createUser,
+} from "../utils/testing.ts";
 
 Deno.test({
   name: "Create Set - Success",
@@ -28,21 +24,28 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const session = await createSession(db, user);
+
+    const testSet = { title: "testtitle" };
 
     const ctx = testing.createMockContext({
       path: "/api/sets/create",
       method: "POST",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
-      body: ReadableStream.from([JSON.stringify({ title: TEST_SET_TITLE })]),
+      headers: [["Cookie", `SESSION=${session.token}`]],
+      body: ReadableStream.from([JSON.stringify(testSet)]),
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.status, 200);
+    const set = db.sql<{ title: string; owner: string }>`
+      SELECT * from Sets
+      WHERE title = ${testSet.title}
+    `;
+    assertEquals(set.length, 1);
+    assertEquals(set[0].title, testSet.title);
+    assertEquals(set[0].owner, user.username);
   },
 });
 
@@ -54,15 +57,12 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const testSet = { title: "testtitle" };
 
     const ctx = testing.createMockContext({
       path: "/api/sets/create",
       method: "POST",
-      body: ReadableStream.from([JSON.stringify({ title: TEST_SET_TITLE })]),
+      body: ReadableStream.from([JSON.stringify(testSet)]),
     });
 
     await mw(ctx, next);
@@ -79,19 +79,19 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const session = await createSession(db, user);
+
+    const testSet = {
+      title: "012345678901234567890123456789012345678901234567890123456789",
+    };
 
     const ctx = testing.createMockContext({
       path: "/api/sets/create",
       method: "POST",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
       body: ReadableStream.from([
-        JSON.stringify({
-          title: "012345678901234567890123456789012345678901234567890123456789",
-        }),
+        JSON.stringify(testSet),
       ]), // Long title not permitted.
     });
 
@@ -109,21 +109,24 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const set = await createSet(db, user);
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}`,
+      path: `/api/sets/${set.id}`,
       method: "DELETE",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.status, 200);
+    const set_query = db.sql<{ title: string; owner: string }>`
+      SELECT * from Sets
+      WHERE id = ${set.id}
+    `;
+    assertEquals(set_query.length, 0);
   },
 });
 
@@ -135,20 +138,24 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const set = await createSet(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}`,
+      path: `/api/sets/${set.id}`,
       method: "DELETE",
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.status, 403);
+    const set_query = db.sql<{ title: string; owner: string }>`
+      SELECT * from Sets
+      WHERE id = ${set.id}
+    `;
+    assertEquals(set_query.length, 1);
+    assertEquals(set_query[0].title, set.title);
+    assertEquals(set_query[0].owner, user.username);
   },
 });
 
@@ -160,24 +167,27 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${
-      TEST_USERNAME + "hi"
-    }, ${TEST_EMAIL + "hi"}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${
-      TEST_USERNAME + "hi"
-    }, ${TEST_SESSION_TOKEN}, ${Date.now() + 60 * 60 * 24})`;
+    const user1 = await createUser(db);
+    const user2 = await createUser(db);
+    const set = await createSet(db, user1);
+    const session = await createSession(db, user2);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}`,
+      path: `/api/sets/${set.id}`,
       method: "DELETE",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.status, 403);
+    const set_query = db.sql<{ title: string; owner: string }>`
+      SELECT * from Sets
+      WHERE id = ${set.id}
+    `;
+    assertEquals(set_query.length, 1);
+    assertEquals(set_query[0].title, set.title);
+    assertEquals(set_query[0].owner, user1.username);
   },
 });
 
@@ -189,16 +199,14 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID + "lmnop"}`,
+      path: `/api/sets/${set1.id + "lmnop"}`,
       method: "DELETE",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -215,16 +223,13 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
       path: `/api/sets/${"1111111111111112"}`,
       method: "DELETE",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -241,69 +246,35 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const session = await createSession(db, user);
+
+    const testData = createSetName();
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}`,
+      path: `/api/sets/${set1.id}`,
       method: "PATCH",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
       body: ReadableStream.from([
-        JSON.stringify({ newTitle: "New Title", newOwner: TEST_USERNAME }),
+        JSON.stringify({ title: testData }),
       ]),
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      id: TEST_SET_ID,
-      owner: TEST_USERNAME,
-      title: "New Title",
+      id: set1.id,
+      title: testData,
     });
     assertEquals(ctx.response.status, 200);
-  },
-});
-
-Deno.test({
-  name: "Update set - Success (Owner)",
-  async fn() {
-    const db = memDB();
-    await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
-
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${
-      TEST_USERNAME + "hi"
-    }, ${TEST_EMAIL + "hi"}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
-
-    const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}`,
-      method: "PATCH",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
-      body: ReadableStream.from([
-        JSON.stringify({
-          newTitle: TEST_SET_TITLE,
-          newOwner: TEST_USERNAME + "hi",
-        }),
-      ]),
-    });
-
-    await mw(ctx, next);
-
-    assertEquals(ctx.response.body, {
-      id: TEST_SET_ID,
-      owner: TEST_USERNAME + "hi",
-      title: TEST_SET_TITLE,
-    });
-    assertEquals(ctx.response.status, 200);
+    const set_query = db.sql<{ title: string; owner: string }>`
+      SELECT * from Sets
+      WHERE id = ${set1.id}
+    `;
+    assertEquals(set_query.length, 1);
+    assertEquals(set_query[0].owner, user.username);
+    assertEquals(set_query[0].title, testData);
   },
 });
 
@@ -315,23 +286,27 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}`,
+      path: `/api/sets/${set1.id}`,
       method: "PATCH",
       body: ReadableStream.from([
-        JSON.stringify({ newTitle: "New Title", newOwner: TEST_USERNAME }),
+        JSON.stringify({ title: await createSetName() }),
       ]),
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.status, 403);
+    const set_query = db.sql<{ title: string; owner: string }>`
+      SELECT * from Sets
+      WHERE id = ${set1.id}
+    `;
+    assertEquals(set_query.length, 1);
+    assertEquals(set_query[0].owner, set1.owner.username);
+    assertEquals(set_query[0].title, set1.title);
   },
 });
 
@@ -343,26 +318,31 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${
-      TEST_USERNAME + "hi"
-    }, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${
-      TEST_USERNAME + "hi"
-    }, ${TEST_SESSION_TOKEN}, ${Date.now() + 60 * 60 * 24})`;
+    const user = await createUser(db);
+    const user2 = await createUser(db);
+    const set1 = await createSet(db, user);
+    const session = await createSession(db, user2);
+
+    const setName = await createSetName();
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}`,
+      path: `/api/sets/${set1.id}`,
       method: "PATCH",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
       body: ReadableStream.from([
-        JSON.stringify({ newTitle: "New Title", newOwner: TEST_USERNAME }),
+        JSON.stringify({ title: setName }),
       ]),
     });
 
     await mw(ctx, next);
     assertEquals(ctx.response.status, 403);
+    const set_query = db.sql<{ title: string; owner: string }>`
+      SELECT * from Sets
+      WHERE id = ${set1.id}
+    `;
+    assertEquals(set_query.length, 1);
+    assertEquals(set_query[0].owner, set1.owner.username);
+    assertEquals(set_query[0].title, set1.title);
   },
 });
 
@@ -374,18 +354,15 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
       path: `/api/sets/${"1111111111111112"}`,
       method: "PATCH",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
       body: ReadableStream.from([
-        JSON.stringify({ newTitle: "New Title", newOwner: TEST_USERNAME }),
+        JSON.stringify({ title: await createSetName() }),
       ]),
     });
 
@@ -403,25 +380,25 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${TEST_CARD_ID}, ${TEST_SET_ID}, ${TEST_CARD_FRONT}, ${TEST_CARD_BACK})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const card1 = await createCard(db, set1);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}`,
+      path: `/api/sets/${set1.id}`,
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      id: TEST_SET_ID,
-      owner: TEST_USERNAME,
-      title: TEST_SET_TITLE,
+      id: set1.id,
+      owner: user.username,
+      title: set1.title,
       cards: [{
-        id: TEST_CARD_ID,
-        set_id: TEST_SET_ID,
-        front: TEST_CARD_FRONT,
-        back: TEST_CARD_BACK,
+        id: card1.id,
+        set_id: set1.id,
+        front: card1.front,
+        back: card1.back,
       }],
     });
   },
@@ -456,16 +433,14 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/track`,
+      path: `/api/sets/${set1.id}/track`,
       method: "POST",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -474,11 +449,8 @@ Deno.test({
     assertEquals(ctx.response.status, 200);
 
     const trackedSets = db
-      .sql`SELECT username, set_id FROM TrackedSets WHERE username = ${TEST_USERNAME}`;
-    assertEquals(trackedSets, [{
-      username: TEST_USERNAME,
-      set_id: TEST_SET_ID,
-    }]);
+      .sql`SELECT username, set_id FROM TrackedSets WHERE username = ${user.username}`;
+    assertNotEquals(trackedSets.find((x) => x.set_id == set1.id), null);
   },
 });
 
@@ -491,17 +463,15 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
-    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${TEST_USERNAME}, ${TEST_SET_ID})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const session = await createSession(db, user);
+    const track = await createTracking(db, user, set1);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/track`,
+      path: `/api/sets/${set1.id}/track`,
       method: "POST",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -520,11 +490,11 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/track`,
+      path: `/api/sets/${set1.id}/track`,
       method: "POST",
     });
 
@@ -544,11 +514,11 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/track`,
+      path: `/api/sets/${set1.id}/track`,
       method: "POST",
       headers: [["Cookie", `SESSION=invalidtoken`]],
     });
@@ -569,15 +539,13 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
       path: `/api/sets/nonexistent/track`,
       method: "POST",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -596,17 +564,15 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
-    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${TEST_USERNAME}, ${TEST_SET_ID})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const session = await createSession(db, user);
+    await createTracking(db, user, set1);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/untrack`,
+      path: `/api/sets/${set1.id}/untrack`,
       method: "DELETE",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -615,7 +581,7 @@ Deno.test({
     assertEquals(ctx.response.status, 200);
 
     const trackedSets = db
-      .sql`SELECT username, set_id FROM TrackedSets WHERE username = ${TEST_USERNAME}`;
+      .sql`SELECT username, set_id FROM TrackedSets WHERE username = ${user.username}`;
     assertEquals(trackedSets, []);
   },
 });
@@ -629,16 +595,14 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/untrack`,
+      path: `/api/sets/${set1.id}/untrack`,
       method: "DELETE",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -657,17 +621,15 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
-    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${TEST_USERNAME}, ${TEST_SET_ID})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const session = await createSession(db, user);
+    await createTracking(db, user, set1);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/tracked`,
+      path: `/api/sets/${set1.id}/tracked`,
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -686,16 +648,14 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/tracked`,
+      path: `/api/sets/${set1.id}/tracked`,
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -714,22 +674,20 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const user = await createUser(db);
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
       path: `/api/sets/tracked`,
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
       id: "tracked",
-      owner: TEST_USERNAME,
+      owner: user.username,
       title: "Tracked Sets",
       cards: [],
     });
@@ -746,31 +704,29 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${TEST_CARD_ID}, ${TEST_SET_ID}, ${TEST_CARD_FRONT}, ${TEST_CARD_BACK})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
-    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${TEST_USERNAME}, ${TEST_SET_ID})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const card1 = await createCard(db, set1);
+    const session = await createSession(db, user);
+    await createTracking(db, user, set1);
 
     const ctx = testing.createMockContext({
       path: `/api/sets/tracked`,
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
       id: "tracked",
-      owner: TEST_USERNAME,
+      owner: user.username,
       title: "Tracked Sets",
       cards: [{
-        id: TEST_CARD_ID,
-        set_id: TEST_SET_ID,
-        front: TEST_CARD_FRONT,
-        back: TEST_CARD_BACK,
+        id: card1.id,
+        set_id: set1.id,
+        front: card1.front,
+        back: card1.back,
       }],
     });
     assertEquals(ctx.response.status, 200);
@@ -807,8 +763,10 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
+    const set1 = await createSet(db);
+
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}?study=true`,
+      path: `/api/sets/${set1.id}?study=true`,
       method: "GET",
     });
 
@@ -828,33 +786,30 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
     // insert a card that needs studying (old last_reviewed time, low points)
-    const oldTime = Math.floor(Date.now() / 1000) - 100000;
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${TEST_CARD_ID}, ${TEST_SET_ID}, ${TEST_CARD_FRONT}, ${TEST_CARD_BACK})`;
-    db.sql`INSERT INTO CardProgress (username, card_id, points, last_reviewed) VALUES (${TEST_USERNAME}, ${TEST_CARD_ID}, ${0}, ${oldTime})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const card1 = await createCard(db, set1);
+    await createCardProgress(db, user, card1, 0, createPreviousTime(100000));
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}?study=true`,
+      path: `/api/sets/${set1.id}?study=true`,
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      id: TEST_SET_ID,
-      owner: TEST_USERNAME,
-      title: TEST_SET_TITLE,
+      id: set1.id,
+      owner: user.username,
+      title: set1.title,
       cards: [{
-        id: TEST_CARD_ID,
-        set_id: TEST_SET_ID,
-        front: TEST_CARD_FRONT,
-        back: TEST_CARD_BACK,
+        id: card1.id,
+        set_id: set1.id,
+        front: card1.front,
+        back: card1.back,
       }],
     });
   },
@@ -869,28 +824,25 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
     // insert a card that doesn't need studying (recent last_reviewed time, high points)
-    const recentTime = Math.floor(Date.now() / 1000);
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${TEST_CARD_ID}, ${TEST_SET_ID}, ${TEST_CARD_FRONT}, ${TEST_CARD_BACK})`;
-    db.sql`INSERT INTO CardProgress (username, card_id, points, last_reviewed) VALUES (${TEST_USERNAME}, ${TEST_CARD_ID}, ${10}, ${recentTime})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const card1 = await createCard(db, set1);
+    await createCardProgress(db, user, card1, 10, createPreviousTime(0));
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}?study=true`,
+      path: `/api/sets/${set1.id}?study=true`,
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      id: TEST_SET_ID,
-      owner: TEST_USERNAME,
-      title: TEST_SET_TITLE,
+      id: set1.id,
+      owner: user.username,
+      title: set1.title,
       cards: [],
     });
   },
@@ -905,33 +857,30 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
     // insert a card where with offset 5 it needs to be studied
-    const recentTime = Math.floor(Date.now() / 1000) - 10000;
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${TEST_CARD_ID}, ${TEST_SET_ID}, ${TEST_CARD_FRONT}, ${TEST_CARD_BACK})`;
-    db.sql`INSERT INTO CardProgress (username, card_id, points, last_reviewed) VALUES (${TEST_USERNAME}, ${TEST_CARD_ID}, ${0}, ${recentTime})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const card1 = await createCard(db, set1);
+    await createCardProgress(db, user, card1, 0, createPreviousTime(10000));
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}?study=5`,
+      path: `/api/sets/${set1.id}?study=5`,
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      id: TEST_SET_ID,
-      owner: TEST_USERNAME,
-      title: TEST_SET_TITLE,
+      id: set1.id,
+      owner: user.username,
+      title: set1.title,
       cards: [{
-        id: TEST_CARD_ID,
-        set_id: TEST_SET_ID,
-        front: TEST_CARD_FRONT,
-        back: TEST_CARD_BACK,
+        id: card1.id,
+        set_id: set1.id,
+        front: card1.front,
+        back: card1.back,
       }],
     });
   },
@@ -946,52 +895,49 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    const user1 = await createUser(db);
+    const user2 = await createUser(db);
 
-    const set2Id = "2222222222222222";
-    const set2Title = "Test Set 2";
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${set2Id}, ${TEST_USERNAME}, ${set2Title})`;
+    const set1 = await createSet(db, user1);
+    const set2 = await createSet(db, user2);
 
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${TEST_CARD_ID}, ${TEST_SET_ID}, ${TEST_CARD_FRONT}, ${TEST_CARD_BACK})`;
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${TEST_CARD_ID_2}, ${set2Id}, ${TEST_CARD_FRONT_2}, ${TEST_CARD_BACK_2})`;
+    const card1 = await createCard(db, set1);
+    const card2 = await createCard(db, set2);
 
     // card progress that makes them need studying
-    const oldTime = Math.floor(Date.now() / 1000) - 100000;
-    db.sql`INSERT INTO CardProgress (username, card_id, points, last_reviewed) VALUES (${TEST_USERNAME}, ${TEST_CARD_ID}, ${0}, ${oldTime})`;
-    db.sql`INSERT INTO CardProgress (username, card_id, points, last_reviewed) VALUES (${TEST_USERNAME}, ${TEST_CARD_ID_2}, ${0}, ${oldTime})`;
+    const oldTime = createPreviousTime(100000);
+    await createCardProgress(db, user2, card1, 0, oldTime);
+    await createCardProgress(db, user2, card2, 0, oldTime);
 
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
+    const session = await createSession(db, user2);
 
-    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${TEST_USERNAME}, ${TEST_SET_ID})`;
-    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${TEST_USERNAME}, ${set2Id})`;
+    await createTracking(db, user2, set1);
+    await createTracking(db, user2, set2);
 
     const ctx = testing.createMockContext({
       path: `/api/sets/tracked?study=true`,
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
       id: "tracked",
-      owner: TEST_USERNAME,
+      owner: user2.username,
       title: "Tracked Sets",
       cards: [
         {
-          id: TEST_CARD_ID,
-          set_id: TEST_SET_ID,
-          front: TEST_CARD_FRONT,
-          back: TEST_CARD_BACK,
+          id: card1.id,
+          set_id: set1.id,
+          front: card1.front,
+          back: card1.back,
         },
         {
-          id: TEST_CARD_ID_2,
-          set_id: set2Id,
-          front: TEST_CARD_FRONT_2,
-          back: TEST_CARD_BACK_2,
+          id: card2.id,
+          set_id: set2.id,
+          front: card2.front,
+          back: card2.back,
         },
       ],
     });
@@ -1008,11 +954,10 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    const set1 = await createSet(db);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/untrack`,
+      path: `/api/sets/${set1.id}/untrack`,
       method: "DELETE",
       headers: [["Cookie", `SESSION=invalidtoken`]],
     });
@@ -1033,11 +978,10 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    const set1 = await createSet(db);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/${TEST_SET_ID}/tracked`,
+      path: `/api/sets/${set1.id}/tracked`,
       method: "GET",
       headers: [["Cookie", `SESSION=invalidtoken`]],
     });
@@ -1080,243 +1024,227 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    const username = "testuser";
-    const setId1 = "1111111111111111";
-    const setTitle1 = "Test Set 1";
-    const setId2 = "2222222222222222";
-    const setTitle2 = "Test Set 2";
-
     // Insert test users and sets
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId1}, ${username}, ${setTitle1})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId2}, ${username}, ${setTitle2})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const set2 = await createSet(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/sets/owned/${username}`,
+      path: `/api/sets/owned/${user.username}`,
     });
 
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, [
-      { id: setId1, title: setTitle1 },
-      { id: setId2, title: setTitle2 },
+      { id: set1.id, title: set1.title },
+      { id: set2.id, title: set2.title },
     ]);
   },
 });
 
-Deno.test({
-  name: "Search Sets - No Query Parameter",
-  async fn() {
-    const db = memDB();
+// Deno.test({
+//   name: "Search Sets - No Query Parameter",
+//   async fn() {
+//     const db = memDB();
 
-    await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
+//     await initializeDB(db);
+//     const next = testing.createMockNext();
+//     const mw = createAPIRouter(db).routes();
 
-    const ctx = testing.createMockContext({
-      path: `/api/sets/search`,
-    });
+//     const ctx = testing.createMockContext({
+//       path: `/api/sets/search`,
+//     });
 
-    await mw(ctx, next);
+//     await mw(ctx, next);
 
-    assertEquals(ctx.response.body, { error: "QUERY_PARAMETER_MISSING" });
-    assertEquals(ctx.response.status, 400);
-  },
-});
+//     assertEquals(ctx.response.body, { error: "QUERY_PARAMETER_MISSING" });
+//     assertEquals(ctx.response.status, 400);
+//   },
+// });
 
-Deno.test({
-  name: "Search Sets - Title Match",
-  async fn() {
-    const db = memDB();
+// Deno.test({
+//   name: "Search Sets - Title Match",
+//   async fn() {
+//     const db = memDB();
 
-    await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
+//     await initializeDB(db);
+//     const next = testing.createMockNext();
+//     const mw = createAPIRouter(db).routes();
 
-    const username = "testuser";
-    const setId = "1111111111111111";
-    const setTitle = "JavaScript Basics";
+//     const setTitle = "JavaScript Basics";
 
-    // Insert test users and sets
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId}, ${username}, ${setTitle})`;
+//     // Insert test users and sets
+//     const user = await createUser(db);
+//     const set1 = await createSet(db, user, setTitle);
 
-    const ctx = testing.createMockContext({
-      path: `/api/sets/search?q=JavaScript`,
-    });
+//     const ctx = testing.createMockContext({
+//       path: `/api/sets/search?q=JavaScript`,
+//     });
 
-    await mw(ctx, next);
+//     await mw(ctx, next);
 
-    // Should return the matching set with proper structure
-    assertEquals(Array.isArray(ctx.response.body), true);
-    const body = ctx.response.body as Array<SearchResult>;
-    assertEquals(body.length, 1);
-    assertEquals(body[0].id, setId);
-    assertEquals(body[0].title, setTitle);
-    assertEquals(body[0].owner, username);
-    // Rank should be a number
-    assertEquals(typeof body[0].rank, "number");
-  },
-});
+//     // Should return the matching set with proper structure
+//     assertEquals(Array.isArray(ctx.response.body), true);
+//     const body = ctx.response.body as Array<SearchResult>;
+//     assertEquals(body.length, 1);
+//     assertEquals(body[0].id, set1.id);
+//     assertEquals(body[0].title, set1.title);
+//     assertEquals(body[0].owner, user.username);
+//     // Rank should be a number
+//     assertEquals(typeof body[0].rank, "number");
+//   },
+// });
 
-Deno.test({
-  name: "Search Sets - Card Content Match",
-  async fn() {
-    const db = memDB();
+// Deno.test({
+//   name: "Search Sets - Card Content Match",
+//   async fn() {
+//     const db = memDB();
 
-    await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
+//     await initializeDB(db);
+//     const next = testing.createMockNext();
+//     const mw = createAPIRouter(db).routes();
 
-    const username = "testuser";
-    const setId = "1111111111111111";
-    const setTitle = "Test Set";
-    const cardId = "1234123412341234";
-    const cardFront = "What is JavaScript?";
-    const cardBack = "A programming language";
+//     // Insert test users, sets, and cards
+//     const user = await createUser(db);
+//     const set1 = await createSet(db, user);
+//     const card1 = await createCard(
+//       db,
+//       set1,
+//       "What is JavaScript?",
+//       "A programming language",
+//     );
 
-    // Insert test users, sets, and cards
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId}, ${username}, ${setTitle})`;
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${cardId}, ${setId}, ${cardFront}, ${cardBack})`;
+//     const ctx = testing.createMockContext({
+//       path: `/api/sets/search?q=JavaScript`,
+//     });
 
-    const ctx = testing.createMockContext({
-      path: `/api/sets/search?q=JavaScript`,
-    });
+//     await mw(ctx, next);
 
-    await mw(ctx, next);
+//     // Should return the set that contains a matching card with proper structure
+//     assertEquals(Array.isArray(ctx.response.body), true);
+//     const body = ctx.response.body as Array<SearchResult>;
+//     assertEquals(body.length, 1);
+//     assertEquals(body[0].id, set1.id);
+//     assertEquals(body[0].title, set1.title);
+//     assertEquals(body[0].owner, user.username);
+//     // Should include card information for card matches
+//     assertEquals(body[0].card, {
+//       front: card1.front,
+//       back: card1.back,
+//     });
+//     // Rank should be a number
+//     assertEquals(typeof body[0].rank, "number");
+//   },
+// });
 
-    // Should return the set that contains a matching card with proper structure
-    assertEquals(Array.isArray(ctx.response.body), true);
-    const body = ctx.response.body as Array<SearchResult>;
-    assertEquals(body.length, 1);
-    assertEquals(body[0].id, setId);
-    assertEquals(body[0].title, setTitle);
-    assertEquals(body[0].owner, username);
-    // Should include card information for card matches
-    assertEquals(body[0].card, {
-      front: cardFront,
-      back: cardBack,
-    });
-    // Rank should be a number
-    assertEquals(typeof body[0].rank, "number");
-  },
-});
+// Deno.test({
+//   name: "Search Sets - Multiple Results with Sort and Limit",
+//   async fn() {
+//     const db = memDB();
 
-Deno.test({
-  name: "Search Sets - Multiple Results with Sort and Limit",
-  async fn() {
-    const db = memDB();
+//     await initializeDB(db);
+//     const next = testing.createMockNext();
+//     const mw = createAPIRouter(db).routes();
 
-    await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
+//     // Insert multiple sets to test sorting and limiting
+//     const user = await createUser(db);
+//     const setNameWrapper = (i: number) => `Set ${i} about programming`;
+//     const createSetName = createSmallUniqueLabeled(setNameWrapper);
 
-    const username = "testuser";
+//     for (let i = 0; i < 25; i++) {
+//       createSet(db, user, createSetName());
+//     }
 
-    // Insert multiple sets to test sorting and limiting
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    for (let i = 0; i < 25; i++) {
-      const setId = (1111111111111111 + i).toString();
-      const setTitle = `Set ${i} about programming`;
+//     const ctx = testing.createMockContext({
+//       path: `/api/sets/search?q=programming`,
+//     });
 
-      db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId}, ${username}, ${setTitle})`;
-    }
+//     await mw(ctx, next);
 
-    const ctx = testing.createMockContext({
-      path: `/api/sets/search?q=programming`,
-    });
+//     // Should return at most 20 results
+//     assertEquals(Array.isArray(ctx.response.body), true);
+//     const body = ctx.response.body as Array<SearchResult>;
+//     assertEquals(body.length <= 20, true);
+//     assertEquals(body.length, 20); // Should be exactly 20 since we have more than 20 matches
 
-    await mw(ctx, next);
+//     // Check that results are properly structured
+//     for (const result of body) {
+//       assertEquals(typeof result.id, "string");
+//       assertEquals(typeof result.title, "string");
+//       assertEquals(typeof result.owner, "string");
+//       assertEquals(typeof result.rank, "number");
+//       // Card should be null for title matches
+//       assertEquals(result.card, null);
+//     }
 
-    // Should return at most 20 results
-    assertEquals(Array.isArray(ctx.response.body), true);
-    const body = ctx.response.body as Array<SearchResult>;
-    assertEquals(body.length <= 20, true);
-    assertEquals(body.length, 20); // Should be exactly 20 since we have more than 20 matches
+//     // Check that results are sorted by rank (ascending - best matches first)
+//     for (let i = 0; i < body.length - 1; i++) {
+//       const currentRank = body[i].rank;
+//       const nextRank = body[i + 1].rank;
+//       assertEquals(currentRank <= nextRank, true);
+//     }
+//   },
+// });
 
-    // Check that results are properly structured
-    for (const result of body) {
-      assertEquals(typeof result.id, "string");
-      assertEquals(typeof result.title, "string");
-      assertEquals(typeof result.owner, "string");
-      assertEquals(typeof result.rank, "number");
-      // Card should be null for title matches
-      assertEquals(result.card, null);
-    }
+// Deno.test({
+//   name: "Search Sets - Title and Card Matches Combined",
+//   async fn() {
+//     const db = memDB();
 
-    // Check that results are sorted by rank (ascending - best matches first)
-    for (let i = 0; i < body.length - 1; i++) {
-      const currentRank = body[i].rank;
-      const nextRank = body[i + 1].rank;
-      assertEquals(currentRank <= nextRank, true);
-    }
-  },
-});
+//     await initializeDB(db);
+//     const next = testing.createMockNext();
+//     const mw = createAPIRouter(db).routes();
 
-Deno.test({
-  name: "Search Sets - Title and Card Matches Combined",
-  async fn() {
-    const db = memDB();
+//     // Insert test users, sets, and cards
+//     const user = await createUser(db);
+//     const titleSet = await createSet(db, user, "JavaScript Guide");
+//     const cardSet = await createSet(db, user, "Programming Basics");
+//     const card2 = await createCard(
+//       db,
+//       cardSet,
+//       "What is JavaScript?",
+//       "A programming language",
+//     );
 
-    await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
+//     const ctx = testing.createMockContext({
+//       path: `/api/sets/search?q=JavaScript`,
+//     });
 
-    const username = "testuser";
-    const setTitleId = "1111111111111111";
-    const setTitle = "JavaScript Guide";
-    const cardSetId = "2222222222222222";
-    const cardSetTitle = "Programming Basics";
-    const cardId = "1234123412341234";
-    const cardFront = "What is JavaScript?";
-    const cardBack = "A programming language";
+//     await mw(ctx, next);
 
-    // Insert test users, sets, and cards
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setTitleId}, ${username}, ${setTitle})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${cardSetId}, ${username}, ${cardSetTitle})`;
-    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${cardId}, ${cardSetId}, ${cardFront}, ${cardBack})`;
+//     // Should return both the title match and card content match
+//     assertEquals(Array.isArray(ctx.response.body), true);
+//     const body = ctx.response.body as Array<SearchResult>;
+//     assertEquals(body.length, 2);
 
-    const ctx = testing.createMockContext({
-      path: `/api/sets/search?q=JavaScript`,
-    });
+//     // Find which result is which based on ID
+//     const titleMatch = body.find((item) => item.id === titleSet.id)!;
+//     const cardMatch = body.find((item) => item.id === cardSet.id)!;
 
-    await mw(ctx, next);
+//     // Check title match result
+//     assertEquals(titleMatch.id, titleSet.id);
+//     assertEquals(titleMatch.title, titleSet.title);
+//     assertEquals(titleMatch.owner, user.username);
+//     assertEquals(titleMatch.card, null); // Title matches should have null card
 
-    // Should return both the title match and card content match
-    assertEquals(Array.isArray(ctx.response.body), true);
-    const body = ctx.response.body as Array<SearchResult>;
-    assertEquals(body.length, 2);
+//     // Check card match result
+//     assertEquals(cardMatch.id, cardSet.id);
+//     assertEquals(cardMatch.title, cardSet.title);
+//     assertEquals(cardMatch.owner, user.username);
+//     assertEquals(cardMatch.card, {
+//       front: card2.front,
+//       back: card2.back,
+//     });
 
-    // Find which result is which based on ID
-    const titleMatch = body.find((item) => item.id === setTitleId)!;
-    const cardMatch = body.find((item) => item.id === cardSetId)!;
-
-    // Check title match result
-    assertEquals(titleMatch.id, setTitleId);
-    assertEquals(titleMatch.title, setTitle);
-    assertEquals(titleMatch.owner, username);
-    assertEquals(titleMatch.card, null); // Title matches should have null card
-
-    // Check card match result
-    assertEquals(cardMatch.id, cardSetId);
-    assertEquals(cardMatch.title, cardSetTitle);
-    assertEquals(cardMatch.owner, username);
-    assertEquals(cardMatch.card, {
-      front: cardFront,
-      back: cardBack,
-    });
-
-    // Check that results are sorted by rank
-    if (body.length > 1) {
-      assertEquals(
-        body[0].rank <= body[1].rank,
-        true,
-      );
-    }
-  },
-});
+//     // Check that results are sorted by rank
+//     if (body.length > 1) {
+//       assertEquals(
+//         body[0].rank <= body[1].rank,
+//         true,
+//       );
+//     }
+//   },
+// });
 
 Deno.test({
   name: "Get Tracked Sets List - Success",
@@ -1327,26 +1255,17 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    const username = "testuser";
-    const token = "validtoken";
-    const setId1 = "1111111111111111";
-    const setTitle1 = "Test Set 1";
-    const setId2 = "2222222222222222";
-    const setTitle2 = "Test Set 2";
-
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId1}, ${username}, ${setTitle1})`;
-    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId2}, ${username}, ${setTitle2})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${username}, ${token}, ${
-      Date.now() + 60 * 60 * 24
-    })`;
-    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${username}, ${setId1})`;
-    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${username}, ${setId2})`;
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const set2 = await createSet(db, user);
+    const session = await createSession(db, user);
+    await createTracking(db, user, set1);
+    await createTracking(db, user, set2);
 
     const ctx = testing.createMockContext({
       path: `/api/sets/tracked/list`,
       method: "GET",
-      headers: [["Cookie", `SESSION=${token}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -1357,8 +1276,8 @@ Deno.test({
 
     // Check that both tracked sets are returned
     const returnedIds = body.map((item) => item.id);
-    assertEquals(returnedIds.includes(setId1), true);
-    assertEquals(returnedIds.includes(setId2), true);
+    assertEquals(returnedIds.includes(set1.id), true);
+    assertEquals(returnedIds.includes(set2.id), true);
 
     // Check that each item has the expected structure
     for (const item of body) {

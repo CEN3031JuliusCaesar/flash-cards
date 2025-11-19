@@ -28,7 +28,7 @@ export type CardProgressResult = {
   front: string;
   back: string;
   points: number;
-  last_reviewed: string | null;
+  last_reviewed: number;
 };
 export type SetInfoResult = { id: string; owner: string; title: string };
 export type TrackedStatusResult = { 1: number }; // SQLite returns 1 for SELECT 1
@@ -137,9 +137,9 @@ export function createSetsRouter(db: Database) {
     }
    */
   router.post("/create", async (ctx) => {
-    const SESSION = await ctx.cookies.get("SESSION");
+    const session = await ctx.cookies.get("SESSION");
 
-    if (SESSION == null) {
+    if (session == null) {
       ctx.response.body = {
         error: NO_SESSION_TOKEN,
       };
@@ -147,13 +147,13 @@ export function createSetsRouter(db: Database) {
       return;
     }
 
-    const USERNAME = db.sql`
+    const username = db.sql<SessionResult>`
       SELECT username FROM Sessions
-      WHERE token = ${SESSION}
+      WHERE token = ${session}
       AND expires > strftime('%s', 'now');
     `[0]?.username;
 
-    if (USERNAME === undefined) {
+    if (username == null) {
       ctx.response.body = {
         error: UNAUTHORIZED,
       };
@@ -171,195 +171,21 @@ export function createSetsRouter(db: Database) {
       return;
     }
 
-    const SNOWFLAKE = Snowflake.generate();
+    const snowflake = Snowflake.generate();
+
+    console.log(snowflake, username, title);
 
     db.sql`
-      INSERT INTO Sets (id, owner, title)
-      VALUES (${SNOWFLAKE}, ${USERNAME}, ${title});
+      INSERT INTO Sets (id, rowid_int, owner, title)
+      VALUES (${snowflake}, ${BigInt("0x" + snowflake)}, ${username}, ${title});
     `;
 
     ctx.response.body = {
-      id: SNOWFLAKE,
-      owner: USERNAME,
+      id: snowflake,
+      owner: username,
       title: title,
     };
     ctx.response.status = 200;
-  });
-
-  router.delete("/:setId", async (ctx) => {
-    const { setId } = ctx.params;
-
-    const SESSION = await ctx.cookies.get("SESSION");
-
-    if (SESSION == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 403;
-      return;
-    }
-
-    const USERNAME = db.sql`
-      SELECT username FROM Sessions
-      WHERE token = ${SESSION}
-      AND expires > strftime('%s', 'now');
-    `[0]?.username;
-
-    // Must be set owner to delete.
-    if (USERNAME == undefined) {
-      ctx.response.body = {
-        error: UNAUTHORIZED,
-      };
-      ctx.response.status = 403;
-      return;
-    }
-
-    // Validate setId is a snowflake.
-    if (!Snowflake.isSnowflake(setId!)) {
-      ctx.response.body = {
-        error: "INVALID_SET_ID",
-      };
-      ctx.response.status = 400;
-      return;
-    }
-
-    const SET = db.sql`
-      SELECT * FROM Sets
-      WHERE id = ${setId}
-      AND owner = ${USERNAME};
-    `;
-
-    // Validate that the set exists & is owned.
-    if (SET.length === 0) {
-      if (db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
-        ctx.response.body = {
-          error: UNAUTHORIZED,
-        };
-        ctx.response.status = 403;
-      } else {
-        ctx.response.body = {
-          error: "SET_NOT_FOUND",
-        };
-        ctx.response.status = 404;
-      }
-      return;
-    }
-
-    db.sql`
-      DELETE FROM Sets
-      WHERE id = ${setId};
-    `;
-
-    ctx.response.body = {
-      id: setId,
-    };
-    ctx.response.status = 200;
-  });
-
-  /**
-   * Update a set's owner or title. If you want to update one or the other, just put the old one in the request JSON.
-   */
-  router.patch("/:setId", async (ctx) => {
-    const { setId } = ctx.params;
-
-    const SESSION = await ctx.cookies.get("SESSION");
-
-    // Session authorization.
-    if (SESSION == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 403;
-      return;
-    }
-
-    const USERNAME = db.sql`
-      SELECT username FROM Sessions
-      WHERE token = ${SESSION}
-      AND expires > strftime('%s', 'now');
-    `[0]?.username;
-
-    if (USERNAME == undefined) {
-      ctx.response.body = {
-        error: UNAUTHORIZED,
-      };
-      ctx.response.status = 403;
-      return;
-    }
-
-    // Validate setId is a snowflake.
-    if (!Snowflake.isSnowflake(setId!)) {
-      ctx.response.body = {
-        error: "INVALID_SET_ID",
-      };
-      ctx.response.status = 400;
-      return;
-    }
-
-    const SET = db.sql`
-      SELECT * FROM Sets
-      WHERE id = ${setId}
-      AND Owner = ${USERNAME};
-    `;
-
-    // Validate that the set exists.
-    if (SET.length === 0) {
-      if (db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
-        ctx.response.body = {
-          error: UNAUTHORIZED,
-        };
-        ctx.response.status = 403;
-      } else {
-        ctx.response.body = {
-          error: "SET_NOT_FOUND",
-        };
-        ctx.response.status = 404;
-      }
-      return;
-    }
-
-    const { newOwner, newTitle } = await ctx.request.body.json();
-
-    // Validate newOwner is valid username.
-    if (
-      typeof newOwner !== "string" || newOwner.length === 0 ||
-      newOwner.length > 32 ||
-      db.sql`
-        SELECT * FROM Users WHERE username = ${newOwner};
-      `[0] == undefined
-    ) {
-      ctx.response.body = {
-        error: INVALID_REQUEST,
-      };
-      ctx.response.status = 400;
-      return;
-    }
-
-    // Validate newTitle is valid title.
-    if (
-      typeof newTitle !== "string" || newTitle.length === 0 ||
-      newTitle.length > 50
-    ) {
-      ctx.response.body = {
-        error: INVALID_REQUEST,
-      };
-      ctx.response.status = 400;
-      return;
-    }
-
-    db.sql`
-      UPDATE Sets
-      SET owner = ${newOwner}, title = ${newTitle}
-      WHERE id = ${setId};
-    `;
-
-    ctx.response.body = {
-      id: setId,
-      owner: newOwner,
-      title: newTitle,
-    };
-    ctx.response.status = 200;
-    return;
   });
 
   // get all tracked sets for user with study option as a single combined set
@@ -392,11 +218,11 @@ export function createSetsRouter(db: Database) {
     const user = username[0].username;
 
     const trackedSets = db.sql<TrackedSetResult>`
-        SELECT s.id, s.owner, s.title
-        FROM Sets s
-        INNER JOIN TrackedSets ts ON s.id = ts.set_id
-        WHERE ts.username = ${user};
-      `;
+      SELECT s.id, s.owner, s.title
+      FROM Sets s
+      INNER JOIN TrackedSets ts ON s.id = ts.set_id
+      WHERE ts.username = ${user};
+    `;
 
     // Create a combined pseudo-set to hold all cards
     const combinedSet: TrackedSetResponse = {
@@ -855,6 +681,166 @@ export function createSetsRouter(db: Database) {
     } satisfies TrackedStatusResponse;
   });
 
+  router.delete("/:setId", async (ctx) => {
+    const { setId } = ctx.params;
+
+    const session = await ctx.cookies.get("SESSION");
+
+    if (session == null) {
+      ctx.response.body = {
+        error: NO_SESSION_TOKEN,
+      };
+      ctx.response.status = 403;
+      return;
+    }
+
+    const username = db.sql`
+      SELECT username FROM Sessions
+      WHERE token = ${session}
+      AND expires > strftime('%s', 'now');
+    `[0]?.username;
+
+    // Must be set owner to delete.
+    if (username == undefined) {
+      ctx.response.body = {
+        error: UNAUTHORIZED,
+      };
+      ctx.response.status = 403;
+      return;
+    }
+
+    // Validate setId is a snowflake.
+    if (!Snowflake.isSnowflake(setId!)) {
+      ctx.response.body = {
+        error: "INVALID_SET_ID",
+      };
+      ctx.response.status = 400;
+      return;
+    }
+
+    const set = db.sql`
+      SELECT * FROM Sets
+      WHERE id = ${setId}
+      AND owner = ${username};
+    `;
+
+    // Validate that the set exists & is owned.
+    if (set.length === 0) {
+      if (db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
+        ctx.response.body = {
+          error: UNAUTHORIZED,
+        };
+        ctx.response.status = 403;
+      } else {
+        ctx.response.body = {
+          error: "SET_NOT_FOUND",
+        };
+        ctx.response.status = 404;
+      }
+      return;
+    }
+
+    db.sql`
+      DELETE FROM Sets
+      WHERE id = ${setId};
+    `;
+
+    ctx.response.body = {
+      id: setId,
+    };
+    ctx.response.status = 200;
+  });
+
+  /**
+   * Update a set's owner or title. If you want to update one or the other, just put the old one in the request JSON.
+   */
+  router.patch("/:setId", async (ctx) => {
+    const { setId } = ctx.params;
+
+    const session = await ctx.cookies.get("SESSION");
+
+    // Session authorization.
+    if (session == null) {
+      ctx.response.body = {
+        error: NO_SESSION_TOKEN,
+      };
+      ctx.response.status = 403;
+      return;
+    }
+
+    const username = db.sql`
+      SELECT username FROM Sessions
+      WHERE token = ${session}
+      AND expires > strftime('%s', 'now');
+    `[0]?.username;
+
+    if (username == undefined) {
+      ctx.response.body = {
+        error: UNAUTHORIZED,
+      };
+      ctx.response.status = 403;
+      return;
+    }
+
+    // Validate setId is a snowflake.
+    if (!Snowflake.isSnowflake(setId!)) {
+      ctx.response.body = {
+        error: "INVALID_SET_ID",
+      };
+      ctx.response.status = 400;
+      return;
+    }
+
+    const set = db.sql`
+      SELECT * FROM Sets
+      WHERE id = ${setId}
+      AND Owner = ${username};
+    `;
+
+    // Validate that the set exists.
+    if (set.length === 0) {
+      if (db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
+        ctx.response.body = {
+          error: UNAUTHORIZED,
+        };
+        ctx.response.status = 403;
+      } else {
+        ctx.response.body = {
+          error: "SET_NOT_FOUND",
+        };
+        ctx.response.status = 404;
+      }
+      return;
+    }
+
+    const { title } = await ctx.request.body.json();
+
+    // Validate title is valid title.
+    if (
+      typeof title !== "string" || title.length === 0 ||
+      title.length > 50
+    ) {
+      ctx.response.body = {
+        error: INVALID_REQUEST,
+      };
+      ctx.response.status = 400;
+      return;
+    }
+
+    db.sql`
+      UPDATE Sets
+      SET title = ${title}
+      WHERE id = ${setId};
+    `;
+
+    ctx.response.body = {
+      id: setId,
+      title: title,
+    };
+    ctx.response.status = 200;
+    return;
+  });
+
   return router;
 }
 
@@ -872,7 +858,7 @@ function getRelevantCards(
       c.front,
       c.back,
       COALESCE(cp.points, 0) as points,
-      cp.last_reviewed
+      COALESCE(cp.last_reviewed, 0) as last_reviewed
     FROM Cards c
     LEFT JOIN CardProgress cp ON c.id = cp.card_id AND cp.username = ${username}
     WHERE c.set_id = ${setId};
@@ -888,7 +874,7 @@ function getRelevantCards(
 
   for (const card of cards) {
     let points = card.points;
-    const lastReviewed = card.last_reviewed ? parseInt(card.last_reviewed) : 0;
+    const lastReviewed = card.last_reviewed;
     const daysSinceLastReview = (now - lastReviewed) / (24 * 60 * 60);
 
     if (daysSinceLastReview > Math.pow(2, points) * 2) {

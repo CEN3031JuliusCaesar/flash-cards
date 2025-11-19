@@ -5,7 +5,7 @@ let db: Database;
 
 export function persistentDB() {
   if (!db) {
-    db = new Database("./database.sqlite");
+    db = new Database("./database.sqlite", { int64: true });
     // Set PRAGMA settings for persistent database
     db.exec("PRAGMA foreign_keys = ON;");
   }
@@ -16,6 +16,7 @@ export function persistentDB() {
 export function memDB() {
   const out = new Database(":memory:", {
     memory: true,
+    int64: true,
   });
   // Set PRAGMA settings for in-memory database
   out.exec("PRAGMA foreign_keys = ON;");

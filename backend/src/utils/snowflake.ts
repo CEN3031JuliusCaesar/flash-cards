@@ -8,13 +8,13 @@ export class Snowflake {
     return this.singleton.generate();
   }
   public generate() {
-    const TIMESTAMP = BigInt(Date.now());
-    if (this.lastTime === TIMESTAMP) {
+    const timestamp = BigInt(Date.now());
+    if (this.lastTime === timestamp) {
       this.sequence = this.sequence + 1n;
     } else {
       this.sequence = 0n;
     }
-    this.lastTime = TIMESTAMP;
+    this.lastTime = timestamp;
     let result = this.lastTime << 22n;
     result = result | this.sequence;
     return result.toString(16);
