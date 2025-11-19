@@ -1,5 +1,6 @@
 import { Database } from "@db/sqlite";
 import { createCardRouter } from "./cards.ts";
+import { createSetsRouter } from "./sets.ts";
 import { Router } from "@oak/oak";
 import { createUserAPIRouter } from "./user/combined.ts";
 
@@ -10,6 +11,10 @@ export function createAPIRouter(db: Database) {
   // Card endpoints: /api/cards
   const cardsRouter = createCardRouter(db);
   router.use("/api/cards", cardsRouter.routes(), cardsRouter.allowedMethods());
+
+  // Sets endpoints: /api/sets
+  const setsRouter = createSetsRouter(db);
+  router.use("/api/sets", setsRouter.routes(), setsRouter.allowedMethods());
 
   // User endpoints: /api/user
   const userRouter = createUserAPIRouter(db);
