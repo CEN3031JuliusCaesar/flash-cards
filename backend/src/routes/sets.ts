@@ -173,8 +173,6 @@ export function createSetsRouter(db: Database) {
 
     const snowflake = Snowflake.generate();
 
-    console.log(snowflake, username, title);
-
     db.sql`
       INSERT INTO Sets (id, rowid_int, owner, title)
       VALUES (${snowflake}, ${BigInt("0x" + snowflake)}, ${username}, ${title});
@@ -341,7 +339,7 @@ export function createSetsRouter(db: Database) {
         s.owner,
         BM25(SetsFTS) as rank
       FROM SetsFTS
-      JOIN Sets s ON s.id = SetsFTS.rowid
+      JOIN Sets s ON s.rowid_int = SetsFTS.rowid
       WHERE SetsFTS MATCH ${q}
       ORDER BY BM25(SetsFTS)
       LIMIT 20
@@ -357,7 +355,7 @@ export function createSetsRouter(db: Database) {
         c.front AS card_front,
         c.back AS card_back
       FROM CardsFTS
-      JOIN Cards c ON c.id = CardsFTS.rowid
+      JOIN Cards c ON c.rowid_int = CardsFTS.rowid
       JOIN Sets s ON s.id = c.set_id
       WHERE CardsFTS MATCH ${q}
       ORDER BY BM25(CardsFTS)

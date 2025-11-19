@@ -104,7 +104,7 @@ export function createCardRouter(db: Database) {
     const { cardId } = ctx.params;
 
     const data = db.sql`
-      SELECT * FROM Cards
+      SELECT id, set_id, front, back FROM Cards
       WHERE id = ${cardId};
     `;
 

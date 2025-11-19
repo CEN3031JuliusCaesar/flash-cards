@@ -3,6 +3,7 @@ import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
 import { NO_SESSION_TOKEN } from "./constants.ts";
+import { createCard } from "../utils/testing.ts";
 
 Deno.test({
   name: "Read Card",
@@ -13,26 +14,20 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${"testuser"}, ${"testemail@service.webemail"}, ${"c297e57206c7aee60fe2ede4bee13021542d0d472fa690c76557cdccf8610cc6cc63ff0d6f6a2f6433c577c5326d3023aabdedd04e453b43bfe1fd1ccc9cb728"}, ${"salt"})`;
-    db.sql`INSERT INTO Sets (id, rowid_int, owner, title) VALUES (${"1111111111111111"}, ${
-      BigInt("0x" + "1111111111111111")
-    }, ${"testuser"}, ${"Test Set"})`;
-    db.sql`INSERT INTO Cards (id, rowid_int, set_id, front, back) VALUES (${"1234123412341234"}, ${
-      BigInt("0x" + "1234123412341234")
-    }, ${"1111111111111111"}, ${"Front"}, ${"Back"})`;
+    const card = await createCard(db);
 
     const cardCtx = testing.createMockContext({
-      path: `/api/cards/1234123412341234`,
+      path: `/api/cards/${card.id}`,
     });
 
     await mw(cardCtx, next);
 
     assertEquals(cardCtx.response.body, [
       {
-        back: "Back",
-        front: "Front",
-        id: "1234123412341234",
-        set_id: "1111111111111111",
+        back: card.back,
+        front: card.front,
+        id: card.id,
+        set_id: card.set.id,
       },
     ]);
   },

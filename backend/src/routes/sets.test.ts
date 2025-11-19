@@ -293,7 +293,7 @@ Deno.test({
       path: `/api/sets/${set1.id}`,
       method: "PATCH",
       body: ReadableStream.from([
-        JSON.stringify({ title: await createSetName() }),
+        JSON.stringify({ title: createSetName() }),
       ]),
     });
 
@@ -323,7 +323,7 @@ Deno.test({
     const set1 = await createSet(db, user);
     const session = await createSession(db, user2);
 
-    const setName = await createSetName();
+    const setName = createSetName();
 
     const ctx = testing.createMockContext({
       path: `/api/sets/${set1.id}`,
@@ -362,7 +362,7 @@ Deno.test({
       method: "PATCH",
       headers: [["Cookie", `SESSION=${session.token}`]],
       body: ReadableStream.from([
-        JSON.stringify({ title: await createSetName() }),
+        JSON.stringify({ title: createSetName() }),
       ]),
     });
 
@@ -466,7 +466,7 @@ Deno.test({
     const user = await createUser(db);
     const set1 = await createSet(db, user);
     const session = await createSession(db, user);
-    const track = await createTracking(db, user, set1);
+    await createTracking(db, user, set1);
 
     const ctx = testing.createMockContext({
       path: `/api/sets/${set1.id}/track`,
@@ -1042,209 +1042,209 @@ Deno.test({
   },
 });
 
-// Deno.test({
-//   name: "Search Sets - No Query Parameter",
-//   async fn() {
-//     const db = memDB();
+Deno.test({
+  name: "Search Sets - No Query Parameter",
+  async fn() {
+    const db = memDB();
 
-//     await initializeDB(db);
-//     const next = testing.createMockNext();
-//     const mw = createAPIRouter(db).routes();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
 
-//     const ctx = testing.createMockContext({
-//       path: `/api/sets/search`,
-//     });
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search`,
+    });
 
-//     await mw(ctx, next);
+    await mw(ctx, next);
 
-//     assertEquals(ctx.response.body, { error: "QUERY_PARAMETER_MISSING" });
-//     assertEquals(ctx.response.status, 400);
-//   },
-// });
+    assertEquals(ctx.response.body, { error: "QUERY_PARAMETER_MISSING" });
+    assertEquals(ctx.response.status, 400);
+  },
+});
 
-// Deno.test({
-//   name: "Search Sets - Title Match",
-//   async fn() {
-//     const db = memDB();
+Deno.test({
+  name: "Search Sets - Title Match",
+  async fn() {
+    const db = memDB();
 
-//     await initializeDB(db);
-//     const next = testing.createMockNext();
-//     const mw = createAPIRouter(db).routes();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
 
-//     const setTitle = "JavaScript Basics";
+    const setTitle = "JavaScript Basics";
 
-//     // Insert test users and sets
-//     const user = await createUser(db);
-//     const set1 = await createSet(db, user, setTitle);
+    // Insert test users and sets
+    const user = await createUser(db);
+    const set1 = await createSet(db, user, setTitle);
 
-//     const ctx = testing.createMockContext({
-//       path: `/api/sets/search?q=JavaScript`,
-//     });
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search?q=JavaScript`,
+    });
 
-//     await mw(ctx, next);
+    await mw(ctx, next);
 
-//     // Should return the matching set with proper structure
-//     assertEquals(Array.isArray(ctx.response.body), true);
-//     const body = ctx.response.body as Array<SearchResult>;
-//     assertEquals(body.length, 1);
-//     assertEquals(body[0].id, set1.id);
-//     assertEquals(body[0].title, set1.title);
-//     assertEquals(body[0].owner, user.username);
-//     // Rank should be a number
-//     assertEquals(typeof body[0].rank, "number");
-//   },
-// });
+    // Should return the matching set with proper structure
+    assertEquals(Array.isArray(ctx.response.body), true);
+    const body = ctx.response.body as Array<SearchResult>;
+    assertEquals(body.length, 1);
+    assertEquals(body[0].id, set1.id);
+    assertEquals(body[0].title, set1.title);
+    assertEquals(body[0].owner, user.username);
+    // Rank should be a number
+    assertEquals(typeof body[0].rank, "number");
+  },
+});
 
-// Deno.test({
-//   name: "Search Sets - Card Content Match",
-//   async fn() {
-//     const db = memDB();
+Deno.test({
+  name: "Search Sets - Card Content Match",
+  async fn() {
+    const db = memDB();
 
-//     await initializeDB(db);
-//     const next = testing.createMockNext();
-//     const mw = createAPIRouter(db).routes();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
 
-//     // Insert test users, sets, and cards
-//     const user = await createUser(db);
-//     const set1 = await createSet(db, user);
-//     const card1 = await createCard(
-//       db,
-//       set1,
-//       "What is JavaScript?",
-//       "A programming language",
-//     );
+    // Insert test users, sets, and cards
+    const user = await createUser(db);
+    const set1 = await createSet(db, user);
+    const card1 = await createCard(
+      db,
+      set1,
+      "What is JavaScript?",
+      "A programming language",
+    );
 
-//     const ctx = testing.createMockContext({
-//       path: `/api/sets/search?q=JavaScript`,
-//     });
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search?q=JavaScript`,
+    });
 
-//     await mw(ctx, next);
+    await mw(ctx, next);
 
-//     // Should return the set that contains a matching card with proper structure
-//     assertEquals(Array.isArray(ctx.response.body), true);
-//     const body = ctx.response.body as Array<SearchResult>;
-//     assertEquals(body.length, 1);
-//     assertEquals(body[0].id, set1.id);
-//     assertEquals(body[0].title, set1.title);
-//     assertEquals(body[0].owner, user.username);
-//     // Should include card information for card matches
-//     assertEquals(body[0].card, {
-//       front: card1.front,
-//       back: card1.back,
-//     });
-//     // Rank should be a number
-//     assertEquals(typeof body[0].rank, "number");
-//   },
-// });
+    // Should return the set that contains a matching card with proper structure
+    assertEquals(Array.isArray(ctx.response.body), true);
+    const body = ctx.response.body as Array<SearchResult>;
+    assertEquals(body.length, 1);
+    assertEquals(body[0].id, set1.id);
+    assertEquals(body[0].title, set1.title);
+    assertEquals(body[0].owner, user.username);
+    // Should include card information for card matches
+    assertEquals(body[0].card, {
+      front: card1.front,
+      back: card1.back,
+    });
+    // Rank should be a number
+    assertEquals(typeof body[0].rank, "number");
+  },
+});
 
-// Deno.test({
-//   name: "Search Sets - Multiple Results with Sort and Limit",
-//   async fn() {
-//     const db = memDB();
+Deno.test({
+  name: "Search Sets - Multiple Results with Sort and Limit",
+  async fn() {
+    const db = memDB();
 
-//     await initializeDB(db);
-//     const next = testing.createMockNext();
-//     const mw = createAPIRouter(db).routes();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
 
-//     // Insert multiple sets to test sorting and limiting
-//     const user = await createUser(db);
-//     const setNameWrapper = (i: number) => `Set ${i} about programming`;
-//     const createSetName = createSmallUniqueLabeled(setNameWrapper);
+    // Insert multiple sets to test sorting and limiting
+    const user = await createUser(db);
+    const setNameWrapper = (i: number) => `Set ${i} about programming`;
+    const createSetName = createSmallUniqueLabeled(setNameWrapper);
 
-//     for (let i = 0; i < 25; i++) {
-//       createSet(db, user, createSetName());
-//     }
+    for (let i = 0; i < 25; i++) {
+      createSet(db, user, createSetName());
+    }
 
-//     const ctx = testing.createMockContext({
-//       path: `/api/sets/search?q=programming`,
-//     });
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search?q=programming`,
+    });
 
-//     await mw(ctx, next);
+    await mw(ctx, next);
 
-//     // Should return at most 20 results
-//     assertEquals(Array.isArray(ctx.response.body), true);
-//     const body = ctx.response.body as Array<SearchResult>;
-//     assertEquals(body.length <= 20, true);
-//     assertEquals(body.length, 20); // Should be exactly 20 since we have more than 20 matches
+    // Should return at most 20 results
+    assertEquals(Array.isArray(ctx.response.body), true);
+    const body = ctx.response.body as Array<SearchResult>;
+    assertEquals(body.length <= 20, true);
+    assertEquals(body.length, 20); // Should be exactly 20 since we have more than 20 matches
 
-//     // Check that results are properly structured
-//     for (const result of body) {
-//       assertEquals(typeof result.id, "string");
-//       assertEquals(typeof result.title, "string");
-//       assertEquals(typeof result.owner, "string");
-//       assertEquals(typeof result.rank, "number");
-//       // Card should be null for title matches
-//       assertEquals(result.card, null);
-//     }
+    // Check that results are properly structured
+    for (const result of body) {
+      assertEquals(typeof result.id, "string");
+      assertEquals(typeof result.title, "string");
+      assertEquals(typeof result.owner, "string");
+      assertEquals(typeof result.rank, "number");
+      // Card should be null for title matches
+      assertEquals(result.card, null);
+    }
 
-//     // Check that results are sorted by rank (ascending - best matches first)
-//     for (let i = 0; i < body.length - 1; i++) {
-//       const currentRank = body[i].rank;
-//       const nextRank = body[i + 1].rank;
-//       assertEquals(currentRank <= nextRank, true);
-//     }
-//   },
-// });
+    // Check that results are sorted by rank (ascending - best matches first)
+    for (let i = 0; i < body.length - 1; i++) {
+      const currentRank = body[i].rank;
+      const nextRank = body[i + 1].rank;
+      assertEquals(currentRank <= nextRank, true);
+    }
+  },
+});
 
-// Deno.test({
-//   name: "Search Sets - Title and Card Matches Combined",
-//   async fn() {
-//     const db = memDB();
+Deno.test({
+  name: "Search Sets - Title and Card Matches Combined",
+  async fn() {
+    const db = memDB();
 
-//     await initializeDB(db);
-//     const next = testing.createMockNext();
-//     const mw = createAPIRouter(db).routes();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
 
-//     // Insert test users, sets, and cards
-//     const user = await createUser(db);
-//     const titleSet = await createSet(db, user, "JavaScript Guide");
-//     const cardSet = await createSet(db, user, "Programming Basics");
-//     const card2 = await createCard(
-//       db,
-//       cardSet,
-//       "What is JavaScript?",
-//       "A programming language",
-//     );
+    // Insert test users, sets, and cards
+    const user = await createUser(db);
+    const titleSet = await createSet(db, user, "JavaScript Guide");
+    const cardSet = await createSet(db, user, "Programming Basics");
+    const card2 = await createCard(
+      db,
+      cardSet,
+      "What is JavaScript?",
+      "A programming language",
+    );
 
-//     const ctx = testing.createMockContext({
-//       path: `/api/sets/search?q=JavaScript`,
-//     });
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search?q=JavaScript`,
+    });
 
-//     await mw(ctx, next);
+    await mw(ctx, next);
 
-//     // Should return both the title match and card content match
-//     assertEquals(Array.isArray(ctx.response.body), true);
-//     const body = ctx.response.body as Array<SearchResult>;
-//     assertEquals(body.length, 2);
+    // Should return both the title match and card content match
+    assertEquals(Array.isArray(ctx.response.body), true);
+    const body = ctx.response.body as Array<SearchResult>;
+    assertEquals(body.length, 2);
 
-//     // Find which result is which based on ID
-//     const titleMatch = body.find((item) => item.id === titleSet.id)!;
-//     const cardMatch = body.find((item) => item.id === cardSet.id)!;
+    // Find which result is which based on ID
+    const titleMatch = body.find((item) => item.id === titleSet.id)!;
+    const cardMatch = body.find((item) => item.id === cardSet.id)!;
 
-//     // Check title match result
-//     assertEquals(titleMatch.id, titleSet.id);
-//     assertEquals(titleMatch.title, titleSet.title);
-//     assertEquals(titleMatch.owner, user.username);
-//     assertEquals(titleMatch.card, null); // Title matches should have null card
+    // Check title match result
+    assertEquals(titleMatch.id, titleSet.id);
+    assertEquals(titleMatch.title, titleSet.title);
+    assertEquals(titleMatch.owner, user.username);
+    assertEquals(titleMatch.card, null); // Title matches should have null card
 
-//     // Check card match result
-//     assertEquals(cardMatch.id, cardSet.id);
-//     assertEquals(cardMatch.title, cardSet.title);
-//     assertEquals(cardMatch.owner, user.username);
-//     assertEquals(cardMatch.card, {
-//       front: card2.front,
-//       back: card2.back,
-//     });
+    // Check card match result
+    assertEquals(cardMatch.id, cardSet.id);
+    assertEquals(cardMatch.title, cardSet.title);
+    assertEquals(cardMatch.owner, user.username);
+    assertEquals(cardMatch.card, {
+      front: card2.front,
+      back: card2.back,
+    });
 
-//     // Check that results are sorted by rank
-//     if (body.length > 1) {
-//       assertEquals(
-//         body[0].rank <= body[1].rank,
-//         true,
-//       );
-//     }
-//   },
-// });
+    // Check that results are sorted by rank
+    if (body.length > 1) {
+      assertEquals(
+        body[0].rank <= body[1].rank,
+        true,
+      );
+    }
+  },
+});
 
 Deno.test({
   name: "Get Tracked Sets List - Success",
