@@ -3,7 +3,6 @@ import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
 import { NO_SESSION_TOKEN } from "./constants.ts";
-import { ResponseBodyFunction } from "@oak/oak/response";
 
 Deno.test({
   name: "Make Set",
@@ -19,7 +18,7 @@ Deno.test({
       Date.now() + 60 * 60 * 24
     })`;
 
-    const setCtx = testing.createMockContext({
+    let setCtx = testing.createMockContext({
       path: "/api/sets/",
       method: "POST",
     });
@@ -30,16 +29,21 @@ Deno.test({
     assertEquals(setCtx.response.body, { error: NO_SESSION_TOKEN });
 
     // Test with valid session
-    setCtx.cookies.set("SESSION", "token");
-    const bodyData = { name: "Test Set", description: "A test set" };
-    setCtx.request.body = () => ({
-      value: Promise.resolve(bodyData),
+    setCtx = testing.createMockContext({
+      path: "/api/sets/",
+      method: "POST",
+      body: ReadableStream.from([
+        JSON.stringify({ title: "Test Set" }),
+      ]),
+      headers: [["Content-Type", "application/json"]],
     });
+
+    setCtx.cookies.set("SESSION", "token");
 
     await mw(setCtx, next);
 
     assertEquals(setCtx.response.status, 200);
-    const result = setCtx.response.body as any;
+    const result = setCtx.response.body as Record<string, unknown>;
     assertEquals(typeof result.id, "number");
   },
 });
@@ -72,7 +76,7 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.status, 200);
-    const sets = ctx.response.body as any[];
+    const sets = ctx.response.body as Record<string, unknown>[];
     assertEquals(sets.length, 2);
   },
 });
@@ -99,7 +103,7 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.status, 200);
-    const set = ctx.response.body as any[];
+    const set = ctx.response.body as Record<string, unknown>[];
     assertEquals(set[0].name, "Test Set");
   },
 });
