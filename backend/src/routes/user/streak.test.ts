@@ -3,15 +3,11 @@ import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../../db.ts";
 import { createAPIRouter } from "../combined.ts";
 import { NO_SESSION_TOKEN } from "../constants.ts";
+import { createSession, createUser } from "../../utils/testing.ts";
 import { updateStreakForUser } from "./streak.ts";
 
-const TEST_USERNAME = "testuser";
-const TEST_EMAIL = "test@example.com";
-const TEST_HASH = "hash";
-const TEST_SALT = "salt";
-const TEST_SESSION_TOKEN = "valid_session_token";
 const HOURS_IN_SECONDS = 3600;
-const ONE_DAY_IN_SECONDS = 86400;
+const ONE_DAY_IN_SECONDS = 24 * HOURS_IN_SECONDS;
 
 Deno.test({
   name: "Streak w/o Session Fails",
@@ -43,21 +39,21 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
+    const user = await createUser(db, "testuser");
+    // Manually update the user's streak information since createUser doesn't set these fields
     db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak_start_date, streak_last_updated)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${
-      now - 2 * ONE_DAY_IN_SECONDS // Started 2 days ago
-    }, ${now})`; // Last updated now
-    db.sql`
-    INSERT INTO Sessions (username, token, expires)
-    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      now + HOURS_IN_SECONDS
-    })`;
+    UPDATE Users
+    SET
+      streak_start_date = ${now - 2 * ONE_DAY_IN_SECONDS},
+      streak_last_updated = ${now}
+    WHERE username = ${user.username}`;
+
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
       path: "/api/user/streaks",
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -78,22 +74,21 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    // Last updated 40 hours ago (more than 36 hours)
+    const user = await createUser(db, "testuser");
+    // Manually update the user's streak information since createUser doesn't set these fields
     db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak_start_date, streak_last_updated)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${
-      now - 3 * ONE_DAY_IN_SECONDS // Started 3 days ago
-    }, ${now - 40 * HOURS_IN_SECONDS})`;
-    db.sql`
-    INSERT INTO Sessions (username, token, expires)
-    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      now + HOURS_IN_SECONDS
-    })`;
+    UPDATE Users
+    SET
+      streak_start_date = ${now - 3 * ONE_DAY_IN_SECONDS},
+      streak_last_updated = ${now - 40 * HOURS_IN_SECONDS}
+    WHERE username = ${user.username}`;
+
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
       path: "/api/user/streaks",
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -109,16 +104,23 @@ Deno.test({
     const db = memDB();
     await initializeDB(db);
 
-    // User with no previous streak data
-    const now = Math.floor(Date.now() / 1000);
-    db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak_start_date, streak_last_updated)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, NULL, NULL)`;
+    // Create user with default streak values (null)
+    const user = await createUser(db, "testuser");
 
-    updateStreakForUser(db, TEST_USERNAME);
+    // Manually reset the streak information to null since createUser might set default values
+    db.sql`
+    UPDATE Users
+    SET
+      streak_start_date = NULL,
+      streak_last_updated = NULL
+    WHERE username = ${user.username}`;
+
+    const now = Math.floor(Date.now() / 1000);
+
+    updateStreakForUser(db, user.username);
 
     const updatedUser =
-      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${TEST_USERNAME};`[
+      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
         0
       ];
     assertEquals(Number(updatedUser.streak_start_date), now);
@@ -134,18 +136,20 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    // User with existing streak (started 2 days ago, last updated 10 hours ago)
+    // Create user and manually update their streak data
+    const user = await createUser(db, "testuser");
     db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak_start_date, streak_last_updated)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${
-      now - 2 * ONE_DAY_IN_SECONDS // Started 2 days ago
-    }, ${now - 10 * HOURS_IN_SECONDS})`; // Last updated 10 hours ago
+    UPDATE Users
+    SET
+      streak_start_date = ${now - 2 * ONE_DAY_IN_SECONDS},
+      streak_last_updated = ${now - 10 * HOURS_IN_SECONDS}
+    WHERE username = ${user.username}`;
 
     // Use the helper function directly
-    updateStreakForUser(db, TEST_USERNAME);
+    updateStreakForUser(db, user.username);
 
     const updatedUser =
-      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${TEST_USERNAME};`[
+      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
         0
       ];
     // Start date should remain the same since we're continuing the streak
@@ -166,17 +170,19 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    // User with existing streak but last updated more than 36 hours ago (40 hours ago)
+    // Create user and manually update their streak data with last updated more than 36 hours ago
+    const user = await createUser(db, "testuser");
     db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak_start_date, streak_last_updated)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${
-      now - 3 * ONE_DAY_IN_SECONDS // Started 3 days ago
-    }, ${now - 40 * HOURS_IN_SECONDS})`; // Last updated 40 hours ago
+    UPDATE Users
+    SET
+      streak_start_date = ${now - 3 * ONE_DAY_IN_SECONDS},
+      streak_last_updated = ${now - 40 * HOURS_IN_SECONDS}
+    WHERE username = ${user.username}`;
 
-    updateStreakForUser(db, TEST_USERNAME);
+    updateStreakForUser(db, user.username);
 
     const updatedUser =
-      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${TEST_USERNAME};`[
+      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
         0
       ];
     // Start date should be reset to now since the old streak expired

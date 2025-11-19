@@ -2,17 +2,7 @@ import { testing } from "@oak/oak";
 import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../../db.ts";
 import { createAPIRouter } from "../combined.ts";
-
-const TEST_USERNAME = "testuser";
-const TEST_EMAIL = "test@example.com";
-const TEST_HASH = "hash";
-const TEST_SALT = "salt";
-const TEST_SESSION_TOKEN = "valid_session_token";
-const TEST_ADMIN_USERNAME = "adminuser";
-const TEST_ADMIN_EMAIL = "admin@example.com";
-const TEST_ADMIN_HASH = "adminhash";
-const TEST_ADMIN_SALT = "adminsalt";
-const TEST_ADMIN_SESSION_TOKEN = "admin_session_token";
+import { createSession, createUser } from "../../utils/testing.ts";
 
 Deno.test({
   name: "Get User Profile - Success",
@@ -22,11 +12,17 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    // Set up test user in the database
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${3}, ${"Test description"})`;
+    // Create user with profile information
+    const user = await createUser(
+      db,
+      "testuser",
+      undefined,
+      "Test description",
+      3,
+    );
 
     const ctx = testing.createMockContext({
-      path: `/api/user/profile/${TEST_USERNAME}`,
+      path: `/api/user/profile/${user.username}`,
       method: "GET",
     });
 
@@ -68,14 +64,18 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    // Set up test user and session in the database
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${2}, ${"Old description"})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Math.floor(Date.now() / 1000) + 3600
-    })`;
+    // Create user with profile information
+    const user = await createUser(
+      db,
+      "testuser",
+      undefined,
+      "Old description",
+      2,
+    );
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/user/profile/${TEST_USERNAME}`,
+      path: `/api/user/profile/${user.username}`,
       method: "PATCH",
       body: ReadableStream.from([
         JSON.stringify({
@@ -85,7 +85,7 @@ Deno.test({
       ]),
       headers: [
         ["Content-Type", "application/json"],
-        ["Cookie", `SESSION=${TEST_SESSION_TOKEN}`],
+        ["Cookie", `SESSION=${session.token}`],
       ],
     });
 
@@ -98,7 +98,7 @@ Deno.test({
 
     // Verify the changes were applied in the database
     const updatedUser = db
-      .sql`SELECT pic_id, description FROM Users WHERE username = ${TEST_USERNAME};`;
+      .sql`SELECT pic_id, description FROM Users WHERE username = ${user.username};`;
 
     assertEquals(updatedUser, [{
       pic_id: 5,
@@ -115,15 +115,26 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    // Set up regular user and admin user in the database
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description, is_admin) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${1}, ${"Old description"}, ${0})`;
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description, is_admin) VALUES (${TEST_ADMIN_USERNAME}, ${TEST_ADMIN_EMAIL}, ${TEST_ADMIN_HASH}, ${TEST_ADMIN_SALT}, ${0}, ${"Admin description"}, ${1})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_ADMIN_USERNAME}, ${TEST_ADMIN_SESSION_TOKEN}, ${
-      Math.floor(Date.now() / 1000) + 3600
-    })`;
+    // Create regular user and admin user
+    const user = await createUser(
+      db,
+      "testuser",
+      undefined,
+      "Old description",
+      1,
+    );
+    const adminUser = await createUser(
+      db,
+      "adminuser",
+      undefined,
+      "Admin description",
+      0,
+      true,
+    );
+    const adminSession = await createSession(db, adminUser);
 
     const ctx = testing.createMockContext({
-      path: `/api/user/profile/${TEST_USERNAME}`,
+      path: `/api/user/profile/${user.username}`,
       method: "PATCH",
       body: ReadableStream.from([
         JSON.stringify({
@@ -133,7 +144,7 @@ Deno.test({
       ]),
       headers: [
         ["Content-Type", "application/json"],
-        ["Cookie", `SESSION=${TEST_ADMIN_SESSION_TOKEN}`],
+        ["Cookie", `SESSION=${adminSession.token}`],
       ],
     });
 
@@ -146,7 +157,7 @@ Deno.test({
 
     // Verify the changes were applied in the database
     const updatedUser = db
-      .sql`SELECT pic_id, description FROM Users WHERE username = ${TEST_USERNAME};`;
+      .sql`SELECT pic_id, description FROM Users WHERE username = ${user.username};`;
 
     assertEquals(updatedUser, [{
       pic_id: 7,
@@ -163,15 +174,25 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    // Set up user1, user2, and session for user2 in the database
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${2}, ${"User1 description"})`;
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description) VALUES (${"anotheruser"}, ${"another@example.com"}, ${"anotherhash"}, ${"anothersalt"}, ${4}, ${"User2 description"})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${"anotheruser"}, ${TEST_SESSION_TOKEN}, ${
-      Math.floor(Date.now() / 1000) + 3600
-    })`;
+    // Create two users
+    const user1 = await createUser(
+      db,
+      "user1",
+      undefined,
+      "User1 description",
+      2,
+    );
+    const user2 = await createUser(
+      db,
+      "user2",
+      undefined,
+      "User2 description",
+      4,
+    );
+    const session2 = await createSession(db, user2);
 
     const ctx = testing.createMockContext({
-      path: `/api/user/profile/${TEST_USERNAME}`,
+      path: `/api/user/profile/${user1.username}`,
       method: "PATCH",
       body: ReadableStream.from([
         JSON.stringify({
@@ -180,7 +201,7 @@ Deno.test({
       ]),
       headers: [
         ["Content-Type", "application/json"],
-        ["Cookie", `SESSION=${TEST_SESSION_TOKEN}`],
+        ["Cookie", `SESSION=${session2.token}`],
       ],
     });
 
@@ -199,8 +220,10 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
+    const user = await createUser(db, "testuser");
+
     const ctx = testing.createMockContext({
-      path: `/api/user/profile/${TEST_USERNAME}`,
+      path: `/api/user/profile/${user.username}`,
       method: "PATCH",
       body: ReadableStream.from([
         JSON.stringify({
@@ -227,14 +250,18 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    // Set up test user and session in the database
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${1}, ${"Old description"})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Math.floor(Date.now() / 1000) + 3600
-    })`;
+    // Create user and session
+    const user = await createUser(
+      db,
+      "testuser",
+      undefined,
+      "Old description",
+      1,
+    );
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/user/profile/${TEST_USERNAME}`,
+      path: `/api/user/profile/${user.username}`,
       method: "PATCH",
       body: ReadableStream.from([
         JSON.stringify({
@@ -243,7 +270,7 @@ Deno.test({
       ]),
       headers: [
         ["Content-Type", "application/json"],
-        ["Cookie", `SESSION=${TEST_SESSION_TOKEN}`],
+        ["Cookie", `SESSION=${session.token}`],
       ],
     });
 
@@ -262,17 +289,21 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    // Set up test user and session in the database
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${1}, ${"Old description"})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Math.floor(Date.now() / 1000) + 3600
-    })`;
+    // Create user and session
+    const user = await createUser(
+      db,
+      "testuser",
+      undefined,
+      "Old description",
+      1,
+    );
+    const session = await createSession(db, user);
 
     // Create a description that is too long (more than 250 characters)
     const longDescription = "a".repeat(300);
 
     const ctx = testing.createMockContext({
-      path: `/api/user/profile/${TEST_USERNAME}`,
+      path: `/api/user/profile/${user.username}`,
       method: "PATCH",
       body: ReadableStream.from([
         JSON.stringify({
@@ -281,7 +312,7 @@ Deno.test({
       ]),
       headers: [
         ["Content-Type", "application/json"],
-        ["Cookie", `SESSION=${TEST_SESSION_TOKEN}`],
+        ["Cookie", `SESSION=${session.token}`],
       ],
     });
 
@@ -300,14 +331,18 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    // Set up test user and session in the database
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${1}, ${"Old description"})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Math.floor(Date.now() / 1000) + 3600
-    })`;
+    // Create user and session
+    const user = await createUser(
+      db,
+      "testuser",
+      undefined,
+      "Old description",
+      1,
+    );
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/user/profile/${TEST_USERNAME}`,
+      path: `/api/user/profile/${user.username}`,
       method: "PATCH",
       body: ReadableStream.from([
         JSON.stringify({
@@ -316,7 +351,7 @@ Deno.test({
       ]),
       headers: [
         ["Content-Type", "application/json"],
-        ["Cookie", `SESSION=${TEST_SESSION_TOKEN}`],
+        ["Cookie", `SESSION=${session.token}`],
       ],
     });
 
@@ -329,7 +364,7 @@ Deno.test({
 
     // Verify only pic_id was updated
     const updatedUser = db
-      .sql`SELECT pic_id, description FROM Users WHERE username = ${TEST_USERNAME};`;
+      .sql`SELECT pic_id, description FROM Users WHERE username = ${user.username};`;
 
     assertEquals(updatedUser, [{
       pic_id: 4,
@@ -346,14 +381,18 @@ Deno.test({
     const next = testing.createMockNext();
     const mw = createAPIRouter(db).routes();
 
-    // Set up test user and session in the database
-    db.sql`INSERT INTO Users (username, email, hash, salt, pic_id, description) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${2}, ${"Old description"})`;
-    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      Math.floor(Date.now() / 1000) + 3600
-    })`;
+    // Create user and session
+    const user = await createUser(
+      db,
+      "testuser",
+      undefined,
+      "Old description",
+      2,
+    );
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
-      path: `/api/user/profile/${TEST_USERNAME}`,
+      path: `/api/user/profile/${user.username}`,
       method: "PATCH",
       body: ReadableStream.from([
         JSON.stringify({
@@ -362,7 +401,7 @@ Deno.test({
       ]),
       headers: [
         ["Content-Type", "application/json"],
-        ["Cookie", `SESSION=${TEST_SESSION_TOKEN}`],
+        ["Cookie", `SESSION=${session.token}`],
       ],
     });
 
@@ -375,7 +414,7 @@ Deno.test({
 
     // Verify only description was updated
     const updatedUser = db
-      .sql`SELECT pic_id, description FROM Users WHERE username = ${TEST_USERNAME};`;
+      .sql`SELECT pic_id, description FROM Users WHERE username = ${user.username};`;
 
     assertEquals(updatedUser, [{
       pic_id: 2,

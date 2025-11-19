@@ -1,5 +1,5 @@
 import { Database } from "@db/sqlite";
-import { genSalt, pbkdf2 } from "./hashing.ts";
+import { genSalt, pbkdf2, toHex } from "./hashing.ts";
 import { Snowflake } from "./snowflake.ts";
 import { generateSessionToken } from "./sessionkey.ts";
 
@@ -25,19 +25,27 @@ export async function createUser(
   db: Database,
   username = createUsername(),
   password = createPassword(),
+  description = `Description for ${username}`,
+  profile_picture = 0,
+  is_admin = false,
   email = `${username}@mail.com`,
   salt = genSalt(),
 ) {
-  const hash = await pbkdf2(
-    password,
-    salt,
+  const hash = toHex(
+    await pbkdf2(
+      password,
+      salt,
+    ),
   );
   db.sql`
-    INSERT INTO Users (username, email, hash, salt) VALUES (
+    INSERT INTO Users (username, email, hash, salt, pic_id, description, is_admin) VALUES (
       ${username},
       ${email},
       ${hash},
-      ${salt}
+      ${salt},
+      ${profile_picture},
+      ${description},
+      ${+is_admin}
     )
   `;
 
@@ -47,6 +55,9 @@ export async function createUser(
     password,
     salt,
     hash,
+    profile_picture,
+    description,
+    is_admin,
   };
 }
 
