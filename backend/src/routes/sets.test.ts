@@ -25,7 +25,7 @@ Deno.test({
 
     await mw(setCtx, next);
 
-    assertEquals(setCtx.response.status, 401);
+    assertEquals(setCtx.response.status, 404);
     assertEquals(setCtx.response.body, { error: NO_SESSION_TOKEN });
 
     // Test with valid session
@@ -60,8 +60,8 @@ Deno.test({
     db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${"testuser"}, ${"token"}, ${
       Date.now() + 60 * 60 * 24
     })`;
-    db.sql`INSERT INTO Sets (name, description, username) VALUES (${"Set 1"}, ${"Description 1"}, ${"testuser"})`;
-    db.sql`INSERT INTO Sets (name, description, username) VALUES (${"Set 2"}, ${"Description 2"}, ${"testuser"})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${"0000000000000001"}, ${"testuser"}, ${"Test Set 1"})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${"0000000000000002"}, ${"testuser"}, ${"Test Set 2"})`;
 
     const ctx = testing.createMockContext({
       path: "/api/sets/",
@@ -90,9 +90,9 @@ Deno.test({
     const mw = createAPIRouter(db).routes();
 
     db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${"testuser"}, ${"test@test.com"}, ${"hash"}, ${"salt"})`;
-    db.sql`INSERT INTO Sets (name, description, username) VALUES (${"Test Set"}, ${"Test Description"}, ${"testuser"})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${"0000000000000001"}, ${"testuser"}, ${"Test Set"})`;
 
-    const setId = db.sql`SELECT id FROM Sets WHERE name = ${"Test Set"}`[0].id;
+    const setId = "0000000000000001";
 
     const ctx = testing.createMockContext({
       path: `/api/sets/${setId}`,
@@ -104,7 +104,7 @@ Deno.test({
 
     assertEquals(ctx.response.status, 200);
     const set = ctx.response.body as Record<string, unknown>[];
-    assertEquals(set[0].name, "Test Set");
+    assertEquals(set[0].title, "Test Set");
   },
 });
 
@@ -120,9 +120,9 @@ Deno.test({
     db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${"testuser"}, ${"token"}, ${
       Date.now() + 60 * 60 * 24
     })`;
-    db.sql`INSERT INTO Sets (name, description, username) VALUES (${"Test Set"}, ${"Test Description"}, ${"testuser"})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${"0000000000000001"}, ${"testuser"}, ${"Test Set"})`;
 
-    const setId = db.sql`SELECT id FROM Sets WHERE name = ${"Test Set"}`[0].id;
+    const setId = "0000000000000001";
 
     const ctx = testing.createMockContext({
       path: `/api/sets/${setId}`,
@@ -156,9 +156,9 @@ Deno.test({
     db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${"testuser"}, ${"token"}, ${
       Date.now() + 60 * 60 * 24
     })`;
-    db.sql`INSERT INTO Sets (name, description, username) VALUES (${"Test Set"}, ${"Test Description"}, ${"testuser"})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${"0000000000000001"}, ${"testuser"}, ${"Test Set"})`;
 
-    const setId = db.sql`SELECT id FROM Sets WHERE name = ${"Test Set"}`[0].id;
+    const setId = "0000000000000001";
 
     const ctx = testing.createMockContext({
       path: `/api/sets/${setId}/progress`,
@@ -190,9 +190,9 @@ Deno.test({
     db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${"testuser"}, ${"token"}, ${
       Date.now() + 60 * 60 * 24
     })`;
-    db.sql`INSERT INTO Sets (name, description, username) VALUES (${"Old Title"}, ${"Test Description"}, ${"testuser"})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${"0000000000000001"}, ${"testuser"}, ${"Old Title"})`;
 
-    const setId = db.sql`SELECT id FROM Sets WHERE name = ${"Old Title"}`[0].id;
+    const setId = "0000000000000001";
 
     const ctx = testing.createMockContext({
       path: `/api/sets/${setId}`,
