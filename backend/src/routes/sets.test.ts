@@ -3,6 +3,7 @@ import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
 import { NO_SESSION_TOKEN } from "./constants.ts";
+import { SearchResult, TrackedListResponse } from "./sets.ts";
 
 const TEST_USERNAME = "testuser";
 const TEST_EMAIL = "testemail@service.webemail";
@@ -353,9 +354,9 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      id: "combined-pseudo-set",
+      id: "tracked",
       owner: TEST_USERNAME,
-      title: "Tracked Sets Combined",
+      title: "Tracked Sets",
       cards: [],
     });
     assertEquals(ctx.response.status, 200);
@@ -388,9 +389,9 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      id: "combined-pseudo-set",
+      id: "tracked",
       owner: TEST_USERNAME,
-      title: "Tracked Sets Combined",
+      title: "Tracked Sets",
       cards: [{
         id: TEST_CARD_ID,
         set_id: TEST_SET_ID,
@@ -602,9 +603,9 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, {
-      id: "combined-pseudo-set",
+      id: "tracked",
       owner: TEST_USERNAME,
-      title: "Tracked Sets Combined",
+      title: "Tracked Sets",
       cards: [
         {
           id: TEST_CARD_ID,
@@ -692,6 +693,325 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, { error: "Invalid session" });
+    assertEquals(ctx.response.status, 401);
+  },
+});
+
+Deno.test({
+  name: "Get Sets Owned by User - Success",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const username = "testuser";
+    const setId1 = "1111111111111111";
+    const setTitle1 = "Test Set 1";
+    const setId2 = "2222222222222222";
+    const setTitle2 = "Test Set 2";
+
+    // Insert test users and sets
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId1}, ${username}, ${setTitle1})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId2}, ${username}, ${setTitle2})`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/owned/${username}`,
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.body, [
+      { id: setId1, title: setTitle1 },
+      { id: setId2, title: setTitle2 },
+    ]);
+  },
+});
+
+Deno.test({
+  name: "Search Sets - No Query Parameter",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search`,
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.body, { error: "QUERY_PARAMETER_MISSING" });
+    assertEquals(ctx.response.status, 400);
+  },
+});
+
+Deno.test({
+  name: "Search Sets - Title Match",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const username = "testuser";
+    const setId = "1111111111111111";
+    const setTitle = "JavaScript Basics";
+
+    // Insert test users and sets
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId}, ${username}, ${setTitle})`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search?q=JavaScript`,
+    });
+
+    await mw(ctx, next);
+
+    // Should return the matching set with proper structure
+    assertEquals(Array.isArray(ctx.response.body), true);
+    const body = ctx.response.body as Array<SearchResult>;
+    assertEquals(body.length, 1);
+    assertEquals(body[0].id, setId);
+    assertEquals(body[0].title, setTitle);
+    assertEquals(body[0].owner, username);
+    // Rank should be a number
+    assertEquals(typeof body[0].rank, "number");
+  },
+});
+
+Deno.test({
+  name: "Search Sets - Card Content Match",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const username = "testuser";
+    const setId = "1111111111111111";
+    const setTitle = "Test Set";
+    const cardId = "1234123412341234";
+    const cardFront = "What is JavaScript?";
+    const cardBack = "A programming language";
+
+    // Insert test users, sets, and cards
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId}, ${username}, ${setTitle})`;
+    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${cardId}, ${setId}, ${cardFront}, ${cardBack})`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search?q=JavaScript`,
+    });
+
+    await mw(ctx, next);
+
+    // Should return the set that contains a matching card with proper structure
+    assertEquals(Array.isArray(ctx.response.body), true);
+    const body = ctx.response.body as Array<SearchResult>;
+    assertEquals(body.length, 1);
+    assertEquals(body[0].id, setId);
+    assertEquals(body[0].title, setTitle);
+    assertEquals(body[0].owner, username);
+    // Should include card information for card matches
+    assertEquals(body[0].card, {
+      front: cardFront,
+      back: cardBack,
+    });
+    // Rank should be a number
+    assertEquals(typeof body[0].rank, "number");
+  },
+});
+
+Deno.test({
+  name: "Search Sets - Multiple Results with Sort and Limit",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const username = "testuser";
+
+    // Insert multiple sets to test sorting and limiting
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    for (let i = 0; i < 25; i++) {
+      const setId = (1111111111111111 + i).toString();
+      const setTitle = `Set ${i} about programming`;
+
+      db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId}, ${username}, ${setTitle})`;
+    }
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search?q=programming`,
+    });
+
+    await mw(ctx, next);
+
+    // Should return at most 20 results
+    assertEquals(Array.isArray(ctx.response.body), true);
+    const body = ctx.response.body as Array<SearchResult>;
+    assertEquals(body.length <= 20, true);
+    assertEquals(body.length, 20); // Should be exactly 20 since we have more than 20 matches
+
+    // Check that results are properly structured
+    for (const result of body) {
+      assertEquals(typeof result.id, "string");
+      assertEquals(typeof result.title, "string");
+      assertEquals(typeof result.owner, "string");
+      assertEquals(typeof result.rank, "number");
+      // Card should be null for title matches
+      assertEquals(result.card, null);
+    }
+
+    // Check that results are sorted by rank (ascending - best matches first)
+    for (let i = 0; i < body.length - 1; i++) {
+      const currentRank = body[i].rank;
+      const nextRank = body[i + 1].rank;
+      assertEquals(currentRank <= nextRank, true);
+    }
+  },
+});
+
+Deno.test({
+  name: "Search Sets - Title and Card Matches Combined",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const username = "testuser";
+    const setTitleId = "1111111111111111";
+    const setTitle = "JavaScript Guide";
+    const cardSetId = "2222222222222222";
+    const cardSetTitle = "Programming Basics";
+    const cardId = "1234123412341234";
+    const cardFront = "What is JavaScript?";
+    const cardBack = "A programming language";
+
+    // Insert test users, sets, and cards
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setTitleId}, ${username}, ${setTitle})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${cardSetId}, ${username}, ${cardSetTitle})`;
+    db.sql`INSERT INTO Cards (id, set_id, front, back) VALUES (${cardId}, ${cardSetId}, ${cardFront}, ${cardBack})`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/search?q=JavaScript`,
+    });
+
+    await mw(ctx, next);
+
+    // Should return both the title match and card content match
+    assertEquals(Array.isArray(ctx.response.body), true);
+    const body = ctx.response.body as Array<SearchResult>;
+    assertEquals(body.length, 2);
+
+    // Find which result is which based on ID
+    const titleMatch = body.find((item) => item.id === setTitleId)!;
+    const cardMatch = body.find((item) => item.id === cardSetId)!;
+
+    // Check title match result
+    assertEquals(titleMatch.id, setTitleId);
+    assertEquals(titleMatch.title, setTitle);
+    assertEquals(titleMatch.owner, username);
+    assertEquals(titleMatch.card, null); // Title matches should have null card
+
+    // Check card match result
+    assertEquals(cardMatch.id, cardSetId);
+    assertEquals(cardMatch.title, cardSetTitle);
+    assertEquals(cardMatch.owner, username);
+    assertEquals(cardMatch.card, {
+      front: cardFront,
+      back: cardBack,
+    });
+
+    // Check that results are sorted by rank
+    if (body.length > 1) {
+      assertEquals(
+        body[0].rank <= body[1].rank,
+        true,
+      );
+    }
+  },
+});
+
+Deno.test({
+  name: "Get Tracked Sets List - Success",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const username = "testuser";
+    const token = "validtoken";
+    const setId1 = "1111111111111111";
+    const setTitle1 = "Test Set 1";
+    const setId2 = "2222222222222222";
+    const setTitle2 = "Test Set 2";
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${username}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId1}, ${username}, ${setTitle1})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${setId2}, ${username}, ${setTitle2})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${username}, ${token}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${username}, ${setId1})`;
+    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${username}, ${setId2})`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/tracked/list`,
+      method: "GET",
+      headers: [["Cookie", `SESSION=${token}`]],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(Array.isArray(ctx.response.body), true);
+    const body = ctx.response.body as TrackedListResponse;
+    assertEquals(body.length, 2);
+
+    // Check that both tracked sets are returned
+    const returnedIds = body.map((item) => item.id);
+    assertEquals(returnedIds.includes(setId1), true);
+    assertEquals(returnedIds.includes(setId2), true);
+
+    // Check that each item has the expected structure
+    for (const item of body) {
+      assertEquals(typeof item.id, "string");
+      assertEquals(typeof item.owner, "string");
+      assertEquals(typeof item.title, "string");
+    }
+  },
+});
+
+Deno.test({
+  name: "Get Tracked Sets List - No Session",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/tracked/list`,
+      method: "GET",
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.body, { error: NO_SESSION_TOKEN });
     assertEquals(ctx.response.status, 401);
   },
 });

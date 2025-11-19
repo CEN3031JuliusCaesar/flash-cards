@@ -6,13 +6,7 @@ import { Database } from "@db/sqlite";
 export function createCardRouter(db: Database) {
   const router = new Router();
 
-  // Get all cards - Returns 404 since this functionality is not implemented
-  router.get("/", (ctx) => {
-    ctx.response.body = "GET /cards";
-    ctx.response.status = 404;
-  });
-
-  // Get card by ID - Returns the card details for the specified card ID
+  // get card by ID - Returns the card details for the specified card ID
   router.get("/:cardId", (ctx) => {
     const { cardId } = ctx.params;
 
@@ -24,7 +18,7 @@ export function createCardRouter(db: Database) {
     ctx.response.body = data;
   });
 
-  // Get card progress - Returns the progress data for a specific card based on user session
+  // get card progress - Returns the progress data for a specific card based on user session
   router.get("/:cardId/progress", async (ctx) => {
     const SESSION = await ctx.cookies.get("SESSION");
 
