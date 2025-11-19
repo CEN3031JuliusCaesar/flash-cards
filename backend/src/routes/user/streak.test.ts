@@ -39,7 +39,7 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    const user = await createUser(db, "testuser");
+    const user = await createUser(db);
     // Manually update the user's streak information since createUser doesn't set these fields
     db.sql`
     UPDATE Users
@@ -74,7 +74,7 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    const user = await createUser(db, "testuser");
+    const user = await createUser(db);
     // Manually update the user's streak information since createUser doesn't set these fields
     db.sql`
     UPDATE Users
@@ -105,7 +105,7 @@ Deno.test({
     await initializeDB(db);
 
     // Create user with default streak values (null)
-    const user = await createUser(db, "testuser");
+    const user = await createUser(db);
 
     // Manually reset the streak information to null since createUser might set default values
     db.sql`
@@ -115,6 +115,7 @@ Deno.test({
       streak_last_updated = NULL
     WHERE username = ${user.username}`;
 
+    // User with no previous streak data
     const now = Math.floor(Date.now() / 1000);
 
     updateStreakForUser(db, user.username);
@@ -137,7 +138,7 @@ Deno.test({
     const now = Math.floor(Date.now() / 1000);
 
     // Create user and manually update their streak data
-    const user = await createUser(db, "testuser");
+    const user = await createUser(db);
     db.sql`
     UPDATE Users
     SET
@@ -171,7 +172,7 @@ Deno.test({
     const now = Math.floor(Date.now() / 1000);
 
     // Create user and manually update their streak data with last updated more than 36 hours ago
-    const user = await createUser(db, "testuser");
+    const user = await createUser(db);
     db.sql`
     UPDATE Users
     SET
