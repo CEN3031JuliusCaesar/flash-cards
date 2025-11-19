@@ -20,6 +20,358 @@ const TEST_CARD_FRONT_2 = "Front2";
 const TEST_CARD_BACK_2 = "Back2";
 
 Deno.test({
+  name: "Create Set - Success",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: "/api/sets/create",
+      method: "POST",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      body: ReadableStream.from([JSON.stringify({title: TEST_SET_TITLE})])
+    })
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status,200)
+  },
+});
+
+Deno.test({
+  name: "Create Set - No Session",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: "/api/sets/create",
+      method: "POST",
+      body: ReadableStream.from([JSON.stringify({title: TEST_SET_TITLE})])
+    })
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status,403)
+  },
+})
+
+Deno.test({
+  name: "Create Set - Invalid Request",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: "/api/sets/create",
+      method: "POST",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      body: ReadableStream.from([JSON.stringify({title: "012345678901234567890123456789012345678901234567890123456789"})]) // Long title not permitted.
+    })
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status,400)
+  },
+})
+
+Deno.test({
+  name: "Delete set - Success",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${TEST_SET_ID}`,
+      method: "DELETE",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status,200)
+  },
+})
+
+Deno.test({
+  name: "Delete set - No Session",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${TEST_SET_ID}`,
+      method: "DELETE",
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status,403)
+  },
+})
+
+Deno.test({
+  name: "Delete set - Not Owner",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME+"hi"}, ${TEST_EMAIL+"hi"}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME+"hi"}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${TEST_SET_ID}`,
+      method: "DELETE",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status,403)
+  },
+})
+
+Deno.test({
+  name: "Delete set - Invalid ID",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${TEST_SET_ID+"lmnop"}`,
+      method: "DELETE",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status,400)
+  },
+})
+
+Deno.test({
+  name: "Delete set - Nonexistent Set",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${"1111111111111112"}`,
+      method: "DELETE",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status,404)
+  },
+})
+
+Deno.test({
+  name: "Update set - Success (Title)",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${TEST_SET_ID}`,
+      method: "PATCH",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      body: ReadableStream.from([JSON.stringify({newTitle: "New Title", newOwner: TEST_USERNAME})])
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.body, {
+      id: TEST_SET_ID,
+      owner: TEST_USERNAME,
+      title: "New Title",
+    });
+    assertEquals(ctx.response.status, 200);
+  },
+});
+
+Deno.test({
+  name: "Update set - Success (Owner)",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME+"hi"}, ${TEST_EMAIL+"hi"}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${TEST_SET_ID}`,
+      method: "PATCH",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      body: ReadableStream.from([JSON.stringify({newTitle: TEST_SET_TITLE, newOwner: TEST_USERNAME+"hi"})])
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.body, {
+      id: TEST_SET_ID,
+      owner: TEST_USERNAME+"hi",
+      title: TEST_SET_TITLE,
+    });
+    assertEquals(ctx.response.status, 200);
+  },
+});
+
+Deno.test({
+  name: "Update set - No Session",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${TEST_SET_ID}`,
+      method: "PATCH",
+      body: ReadableStream.from([JSON.stringify({newTitle: "New Title", newOwner: TEST_USERNAME})])
+    });
+
+    await mw(ctx, next);
+
+    
+    assertEquals(ctx.response.status, 403);
+  },
+});
+
+Deno.test({
+  name: "Update set - Not owner",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME+"hi"}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME+"hi"}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${TEST_SET_ID}`,
+      method: "PATCH",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      body: ReadableStream.from([JSON.stringify({newTitle: "New Title", newOwner: TEST_USERNAME})])
+    });
+
+    await mw(ctx, next);
+    assertEquals(ctx.response.status, 403);
+  },
+});
+
+Deno.test({
+  name: "Update set - Nonexistent set",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    db.sql`INSERT INTO Users (username, email, hash, salt) VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT})`;
+    db.sql`INSERT INTO Sets (id, owner, title) VALUES (${TEST_SET_ID}, ${TEST_USERNAME}, ${TEST_SET_TITLE})`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
+      Date.now() + 60 * 60 * 24
+    })`;
+
+    const ctx = testing.createMockContext({
+      path: `/api/sets/${"1111111111111112"}`,
+      method: "PATCH",
+      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      body: ReadableStream.from([JSON.stringify({newTitle: "New Title", newOwner: TEST_USERNAME})])
+    });
+
+    await mw(ctx, next);
+    assertEquals(ctx.response.status, 404);
+  },
+});
+
+Deno.test({
   name: "Get Set by ID - Success",
   async fn() {
     const db = memDB();

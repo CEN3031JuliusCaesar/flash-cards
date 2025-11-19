@@ -1,3 +1,5 @@
+//TODO: Use Date.now() instead of strftime so expirations actually work.
+//TODO: Extract session validation to a helper function.
 import { Router } from "@oak/oak";
 import {
   INVALID_REQUEST,
@@ -23,12 +25,9 @@ export function createSetsRouter(db: Database) {
   }
  */
   router.post("/create", async (ctx) => {
-    console.info("POST /sets/create");
 
     const SESSION = await ctx.cookies.get("SESSION");
-    const USERNAME = db.sql`SELECT username FROM Sessions
-  WHERE token = ${SESSION}
-  AND expires > current_timestamp;`[0];
+    
 
     if (SESSION == null) {
       ctx.response.body = {
@@ -38,6 +37,10 @@ export function createSetsRouter(db: Database) {
       return;
     }
 
+    const USERNAME = db.sql`SELECT username FROM Sessions
+      WHERE token = ${SESSION}
+      AND expires > strftime('%s', 'now');`[0]?.username;
+    
     if (USERNAME === undefined) {
       ctx.response.body = {
         error: UNAUTHORIZED,
@@ -45,15 +48,8 @@ export function createSetsRouter(db: Database) {
       ctx.response.status = 403;
       return;
     }
-
-    if (ctx.request.body.type() !== "json") {
-      console.log(await ctx.request.body.json());
-      ctx.response.body = {
-        error: INVALID_REQUEST,
-      };
-      ctx.response.status = 400;
-      return;
-    }
+    
+  
     const { title } = await ctx.request.body.json();
 
     if (typeof title !== "string" || title.length === 0 || title.length > 50) {
@@ -80,15 +76,92 @@ export function createSetsRouter(db: Database) {
   router.delete("/:setId", async (ctx) => {
     const { setId } = ctx.params;
 
-    console.info(`DELETE /sets/${setId}`);
 
     const SESSION = await ctx.cookies.get("SESSION");
-    const USERNAME = db.sql`SELECT username FROM Sessions
-  WHERE token = ${SESSION}
-  AND expires > current_timestamp;`;
 
+    if (SESSION == null) {
+      ctx.response.body = {
+        error: NO_SESSION_TOKEN,
+      };
+      ctx.response.status = 403;
+      return;
+    }
+
+    const USERNAME = db.sql`SELECT username FROM Sessions
+      WHERE token = ${SESSION}
+      AND expires > strftime('%s', 'now');`[0]?.username;
+    
     // Must be set owner to delete.
-    if (USERNAME == null) {
+    if (USERNAME == undefined) {
+      ctx.response.body = {
+        error: UNAUTHORIZED,
+      };
+      ctx.response.status = 403;
+      return;
+    }
+
+    // Validate setId is a snowflake.
+    if (!Snowflake.isSnowflake(setId!)) {
+      ctx.response.body = {
+        error: "INVALID_SET_ID",
+      };
+      ctx.response.status = 400;
+      return;
+    }
+
+    const SET = db.sql`SELECT * FROM Sets
+    WHERE id = ${setId}
+    AND owner = ${USERNAME};`;
+
+    // Validate that the set exists & is owned.
+    if (SET.length === 0) {
+      if(db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
+        ctx.response.body = {
+          error: UNAUTHORIZED,
+        };
+        ctx.response.status = 403;
+      } else {
+        ctx.response.body = {
+          error: "SET_NOT_FOUND",
+        };
+        ctx.response.status = 404;
+      }
+      return;
+    }
+
+    db.sql`DELETE FROM Sets
+  WHERE id = ${setId};`;
+
+    ctx.response.body = {
+      id: setId,
+    };
+    ctx.response.status = 200;
+  });
+
+  /**
+   * Update a set's owner or title. If you want to update one or the other, just put the old one in the request JSON.
+   */
+  router.patch("/:setId", async (ctx) => {
+    const { setId } = ctx.params;
+
+
+    const SESSION = await ctx.cookies.get("SESSION");
+
+    // Session authorization.
+    if (SESSION == null) {
+      ctx.response.body = {
+        error: NO_SESSION_TOKEN,
+      };
+      ctx.response.status = 403;
+      return;
+    }
+
+
+    const USERNAME = db.sql`SELECT username FROM Sessions
+      WHERE token = ${SESSION}
+      AND expires > strftime('%s', 'now');`[0]?.username;
+
+    if (USERNAME == undefined) {
       ctx.response.body = {
         error: UNAUTHORIZED,
       };
@@ -111,74 +184,20 @@ export function createSetsRouter(db: Database) {
 
     // Validate that the set exists.
     if (SET.length === 0) {
-      ctx.response.body = {
-        error: "SET_NOT_FOUND",
-      };
-      ctx.response.status = 404;
+      if(db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
+        ctx.response.body = {
+          error: UNAUTHORIZED,
+        };
+        ctx.response.status = 403;
+      } else {
+        ctx.response.body = {
+          error: "SET_NOT_FOUND",
+        };
+        ctx.response.status = 404;
+      }
       return;
     }
 
-    db.sql`DELETE FROM Sets
-  WHERE id = ${setId};`;
-
-    ctx.response.body = {
-      id: setId,
-    };
-    ctx.response.status = 200;
-  });
-
-  /**
-   * Update a set's owner or title. If you want to update one or the other, just put the old one in the request JSON.
-   */
-  router.patch("/:setId", async (ctx) => {
-    const { setId } = ctx.params;
-
-    console.info(`PATCH /sets/${setId}`);
-
-    const SESSION = await ctx.cookies.get("SESSION");
-    const USERNAME = db.sql`SELECT username FROM Sessions
-  WHERE token = ${SESSION}
-  AND expires > current_timestamp;`;
-
-    // Must be set owner to change ownership or title.
-    if (SESSION == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 403;
-      return;
-    }
-
-    // Validate setId is a snowflake.
-    if (!Snowflake.isSnowflake(setId!)) {
-      ctx.response.body = {
-        error: "INVALID_SET_ID",
-      };
-      ctx.response.status = 400;
-      return;
-    }
-
-    const SET = db.sql`SELECT * FROM Sets
-    WHERE id = ${setId}
-    AND Owner = ${USERNAME};`;
-
-    // Validate that the set exists.
-    if (SET.length === 0) {
-      ctx.response.body = {
-        error: "SET_NOT_FOUND",
-      };
-      ctx.response.status = 404;
-      return;
-    }
-
-    if (ctx.request.body.type() !== "json") {
-      console.log(await ctx.request.body.json());
-      ctx.response.body = {
-        error: INVALID_REQUEST,
-      };
-      ctx.response.status = 400;
-      return;
-    }
 
     const { newOwner, newTitle } = await ctx.request.body.json();
 
@@ -186,7 +205,7 @@ export function createSetsRouter(db: Database) {
     if (
       typeof newOwner !== "string" || newOwner.length === 0 ||
       newOwner.length > 32 ||
-      db.sql`SELECT * FROM Users WHERE username = ${newOwner};`[0] !== undefined
+      db.sql`SELECT * FROM Users WHERE username = ${newOwner};`[0] == undefined
     ) {
       ctx.response.body = {
         error: INVALID_REQUEST,
