@@ -78,6 +78,14 @@ export function createCardRouter(db: Database) {
     ctx.response.status = 200;
   });
 
+  /**
+   * Delete a set.
+   * Requires a valid SESSION cookie. User must be the owner of the set.
+   * Returns the deleted set's id:
+   * {
+    id: SNOWFLAKE,
+    }
+   */
   setsRouter.delete("/:setId", async (ctx) => {
     const { setId } = ctx.params;
 
