@@ -13,7 +13,7 @@ export default function DashboardPage() {
 
   const navigationCards = [
     {
-      title: "Study Session",
+      title: "Learn",
       description: "Start learning with flashcards",
       icon: "🎯",
       path: "/learn/temp",

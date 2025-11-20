@@ -151,13 +151,20 @@ body {
   min-height: 100vh;
 }
 
-main {
+/* Default main styles for pages that need centering */
+main:not(.dashboard):not(.profile-container) {
   flex: auto;
   display: flex;
   align-items: center;
-  max-width: 1600px; /*Changed to 1600px for it to center the dashboard page */
+  max-width: 1600px;
   margin: 0 auto;
   text-align: center;
+}
+
+/* Dashboard and Profile pages handle their own layout */
+main.dashboard,
+.profile-container {
+  flex: auto;
 }
 
 /* ==========================================
