@@ -3,29 +3,21 @@
    ========================================== */
 :root {
   /* Primary Colors*/
-  --color-primary: #667eea;
-  --color-primary-dark: #764ba2;
-  --color-accent: #f093fb;
+  --color-primary: #8a9ae6;
+  --color-primary-dark: #a27bc9;
+  --color-accent: #f7adff;
 
   /* Neutral Colors */
   --color-text-primary: #1a202c;
   --color-text-secondary: #4a5568;
   --color-text-tertiary: #718096;
-  --color-text-light: #555;
 
   /* Background Colors */
-  --color-bg-white: #ffffff;
-  --color-bg-light: #f7fafc;
-  --color-bg-dark: #2d3748;
-  --color-bg-gray: #edf2f7;
-
-  /* Utility Colors */
-  --color-white: #ffffff;
-  --color-gray-light: #e0e0e0;
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f7fafc;
 
   /* Border Colors */
   --color-border: #e2e8f0;
-  --color-border-dark: #4a5568;
 
   /* Status Colors */
   --color-success: #4caf50;
@@ -34,12 +26,28 @@
   --color-purple: #9c27b0;
 
   /* Gradients */
-  --gradient-space: linear-gradient(135deg, #667eea, #764ba2, #f093fb, #667eea);
-  --gradient-space-short: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
-  --gradient-space-light: linear-gradient(135deg, #90cdf4, #a78bfa);
-  --gradient-background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-dark1: linear-gradient(135deg, #1a202c50 0%, #2d374850 100%);
-  --gradient-dark2: linear-gradient(135deg, #1a202ccc 0%, #2d3748cc 100%);
+  --gradient-space: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-primary-dark),
+    var(--color-accent),
+    var(--color-primary)
+  );
+  --gradient-space-short: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-primary-dark),
+    var(--color-accent)
+  );
+  --gradient-background: linear-gradient(
+    135deg,
+    var(--color-primary) 0%,
+    var(--color-primary-dark) 100%
+  );
+
+  /* Border Accents */
+  --border-accent: 0.3em;
+  --border-accent-hover: 0.6em;
 
   /* Shadows */
   --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.08);
@@ -65,14 +73,57 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color: #222;
-  background-color: #ffffff;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-primary);
+
+  @media (prefers-color-scheme: dark) {
+    /* Primary Colors*/
+    --color-primary: #667eea;
+    --color-primary-dark: #764ba2;
+    --color-accent: #f093fb;
+
+    /* Neutral Colors */
+    --color-text-primary: #eee;
+    --color-text-secondary: #ccc;
+    --color-text-tertiary: #aaa;
+
+    /* Background Colors */
+    --color-bg-primary: #223;
+    --color-bg-secondary: #334;
+
+    /* Border Colors */
+    --color-border: #4a5568;
+
+    /* Status Colors */
+    --color-green: #4caf50;
+    --color-blue: #2196f3;
+    --color-orange: #ff9800;
+    --color-purple: #9c27b0;
+
+    /* Gradients */
+    --gradient-space: linear-gradient(
+      135deg,
+      var(--color-primary),
+      var(--color-primary-dark),
+      var(--color-accent),
+      var(--color-primary)
+    );
+    --gradient-space-short: linear-gradient(
+      135deg,
+      var(--color-primary),
+      var(--color-primary-dark),
+      var(--color-accent)
+    );
+    --gradient-background: rgba(from var(--color-bg-primary) r g b / 0.80);
+  }
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  --transition-normal: 0.25s;
 }
 
 /* ==========================================
@@ -156,8 +207,8 @@ header a:hover {
   :root {
     --color-text-primary: #f7fafc;
     --color-text-secondary: #e2e8f0;
-    --color-bg-white: #2d3748;
-    --color-bg-light: #4a5568;
+    --color-bg-primary: #2d3748;
+    --color-bg-secondary: #4a5568;
     --color-border: #4a5568;
     --gradient-background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
     color: #ccc;

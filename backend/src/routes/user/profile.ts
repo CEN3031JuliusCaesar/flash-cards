@@ -26,9 +26,9 @@ export function createProfileRouter(db: Database) {
 
   // Update user's profile picture id and description
   router.patch("/:username", async (ctx) => {
-    const SESSION = await ctx.cookies.get("SESSION");
+    const session = await ctx.cookies.get("SESSION");
 
-    if (SESSION == null) {
+    if (session == null) {
       ctx.response.body = {
         error: NO_SESSION_TOKEN,
       };
@@ -43,7 +43,7 @@ export function createProfileRouter(db: Database) {
       SELECT u.username, u.is_admin
       FROM Users u
       JOIN Sessions s ON u.username = s.username
-      WHERE s.token = ${SESSION}
+      WHERE s.token = ${session}
         AND s.expires > strftime('%s', 'now');
     `;
 

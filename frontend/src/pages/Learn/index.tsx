@@ -45,7 +45,7 @@ const FlashCardPage = () => {
         <button
           type="button"
           class="back-button"
-          onClick={() => location.route("/dashboard")}
+          onClick={() => location.route("/")}
         >
           Back to Dashboard
         </button>

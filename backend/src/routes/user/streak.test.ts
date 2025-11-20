@@ -1,16 +1,13 @@
 import { testing } from "@oak/oak";
-import { assert, assertEquals } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../../db.ts";
 import { createAPIRouter } from "../combined.ts";
 import { NO_SESSION_TOKEN } from "../constants.ts";
+import { createSession, createUser } from "../../utils/testing.ts";
+import { updateStreakForUser } from "./streak.ts";
 
-const TEST_USERNAME = "testuser";
-const TEST_EMAIL = "test@example.com";
-const TEST_HASH = "hash";
-const TEST_SALT = "salt";
-const TEST_SESSION_TOKEN = "valid_session_token";
 const HOURS_IN_SECONDS = 3600;
-const ONE_DAY_IN_SECONDS = 86400;
+const ONE_DAY_IN_SECONDS = 24 * HOURS_IN_SECONDS;
 
 Deno.test({
   name: "Streak w/o Session Fails",
@@ -42,32 +39,33 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
+    const user = await createUser(db);
+    // Manually update the user's streak information since createUser doesn't set these fields
     db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${5}, ${
-      now - 12 * HOURS_IN_SECONDS
-    })`;
-    db.sql`
-    INSERT INTO Sessions (username, token, expires)
-    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      now + HOURS_IN_SECONDS
-    })`;
+    UPDATE Users
+    SET
+      streak_start_date = ${now - 2 * ONE_DAY_IN_SECONDS},
+      streak_last_updated = ${now}
+    WHERE username = ${user.username}`;
+
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
       path: "/api/user/streaks",
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
 
+    // With 2 days between start and now, streak should be 3 (2 days + 1)
     assertEquals(ctx.response.status, 200);
-    assertEquals(ctx.response.body, [{ current_streak: 5 }]);
+    assertEquals(ctx.response.body, [{ current_streak: 3 }]);
   },
 });
 
 Deno.test({
-  name: "Streak is reset on expiration",
+  name: "Streak is reset on expiration (more than 36 hours)",
   async fn() {
     const db = memDB();
     await initializeDB(db);
@@ -76,22 +74,21 @@ Deno.test({
 
     const now = Math.floor(Date.now() / 1000);
 
-    // streak expired 50 hours ago
+    const user = await createUser(db);
+    // Manually update the user's streak information since createUser doesn't set these fields
     db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${10}, ${
-      now - 50 * HOURS_IN_SECONDS
-    })`;
-    db.sql`
-    INSERT INTO Sessions (username, token, expires)
-    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      now + HOURS_IN_SECONDS
-    })`;
+    UPDATE Users
+    SET
+      streak_start_date = ${now - 3 * ONE_DAY_IN_SECONDS},
+      streak_last_updated = ${now - 40 * HOURS_IN_SECONDS}
+    WHERE username = ${user.username}`;
+
+    const session = await createSession(db, user);
 
     const ctx = testing.createMockContext({
       path: "/api/user/streaks",
       method: "GET",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
+      headers: [["Cookie", `SESSION=${session.token}`]],
     });
 
     await mw(ctx, next);
@@ -102,139 +99,96 @@ Deno.test({
 });
 
 Deno.test({
-  name: "Streaks update w/o session fails",
+  name: "Streak update works and sets start date if no previous streak",
   async fn() {
     const db = memDB();
     await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
 
-    const ctx = testing.createMockContext({
-      path: "/api/user/streaks/update",
-      method: "POST",
-    });
+    // Create user with default streak values (null)
+    const user = await createUser(db);
 
-    await mw(ctx, next);
+    // Manually reset the streak information to null since createUser might set default values
+    db.sql`
+    UPDATE Users
+    SET
+      streak_start_date = NULL,
+      streak_last_updated = NULL
+    WHERE username = ${user.username}`;
 
-    assertEquals(ctx.response.status, 401);
-    assertEquals(ctx.response.body, { error: NO_SESSION_TOKEN });
-  },
-});
-
-Deno.test({
-  name: "Streak update works in range",
-  async fn() {
-    const db = memDB();
-    await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
-
+    // User with no previous streak data
     const now = Math.floor(Date.now() / 1000);
 
-    db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${3}, ${
-      now - 36 * HOURS_IN_SECONDS
-    })`;
-    db.sql`
-    INSERT INTO Sessions (username, token, expires)
-    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      now + HOURS_IN_SECONDS
-    })`;
-
-    const ctx = testing.createMockContext({
-      path: "/api/user/streaks/update",
-      method: "POST",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
-    });
-
-    await mw(ctx, next);
+    updateStreakForUser(db, user.username);
 
     const updatedUser =
-      db.sql`SELECT streak, streak_expire FROM Users WHERE username = ${TEST_USERNAME};`[
+      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
         0
       ];
-    assertEquals(updatedUser.streak, 4);
-    const expireTime = parseInt(updatedUser.streak_expire);
-    assert(Math.abs(expireTime - now) < ONE_DAY_IN_SECONDS);
-
-    assertEquals(ctx.response.status, 200);
-    assertEquals(ctx.response.body, []);
+    assertEquals(Number(updatedUser.streak_start_date), now);
+    assertEquals(Number(updatedUser.streak_last_updated), now);
   },
 });
 
 Deno.test({
-  name: "Streak update does nothing if early",
+  name: "Streak update continues existing streak if within 36 hours",
   async fn() {
     const db = memDB();
     await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
 
     const now = Math.floor(Date.now() / 1000);
 
+    // Create user and manually update their streak data
+    const user = await createUser(db);
     db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${2}, ${
-      now - 12 * HOURS_IN_SECONDS
-    })`;
-    db.sql`
-    INSERT INTO Sessions (username, token, expires)
-    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      now + HOURS_IN_SECONDS
-    })`;
+    UPDATE Users
+    SET
+      streak_start_date = ${now - 2 * ONE_DAY_IN_SECONDS},
+      streak_last_updated = ${now - 10 * HOURS_IN_SECONDS}
+    WHERE username = ${user.username}`;
 
-    const ctx = testing.createMockContext({
-      path: "/api/user/streaks/update",
-      method: "POST",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
-    });
-
-    await mw(ctx, next);
+    // Use the helper function directly
+    updateStreakForUser(db, user.username);
 
     const updatedUser =
-      db.sql`SELECT streak FROM Users WHERE username = ${TEST_USERNAME};`[0];
-    assertEquals(updatedUser.streak, 2);
-
-    assertEquals(ctx.response.status, 200);
-    assertEquals(ctx.response.body, []);
+      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
+        0
+      ];
+    // Start date should remain the same since we're continuing the streak
+    assertEquals(
+      Number(updatedUser.streak_start_date),
+      now - 2 * ONE_DAY_IN_SECONDS,
+    );
+    // Last updated should be now
+    assertEquals(Number(updatedUser.streak_last_updated), now);
   },
 });
 
 Deno.test({
-  name: "Streak resets after 48h",
+  name: "Streak reset after more than 36 hours",
   async fn() {
     const db = memDB();
     await initializeDB(db);
-    const next = testing.createMockNext();
-    const mw = createAPIRouter(db).routes();
 
     const now = Math.floor(Date.now() / 1000);
 
+    // Create user and manually update their streak data with last updated more than 36 hours ago
+    const user = await createUser(db);
     db.sql`
-    INSERT INTO Users (username, email, hash, salt, streak, streak_expire)
-    VALUES (${TEST_USERNAME}, ${TEST_EMAIL}, ${TEST_HASH}, ${TEST_SALT}, ${7}, ${
-      now - 60 * HOURS_IN_SECONDS
-    })`;
-    db.sql`
-    INSERT INTO Sessions (username, token, expires)
-    VALUES (${TEST_USERNAME}, ${TEST_SESSION_TOKEN}, ${
-      now + HOURS_IN_SECONDS
-    })`;
+    UPDATE Users
+    SET
+      streak_start_date = ${now - 3 * ONE_DAY_IN_SECONDS},
+      streak_last_updated = ${now - 40 * HOURS_IN_SECONDS}
+    WHERE username = ${user.username}`;
 
-    const ctx = testing.createMockContext({
-      path: "/api/user/streaks/update",
-      method: "POST",
-      headers: [["Cookie", `SESSION=${TEST_SESSION_TOKEN}`]],
-    });
-
-    await mw(ctx, next);
+    updateStreakForUser(db, user.username);
 
     const updatedUser =
-      db.sql`SELECT streak FROM Users WHERE username = ${TEST_USERNAME};`[0];
-    assertEquals(updatedUser.streak, 7);
-
-    assertEquals(ctx.response.status, 200);
-    assertEquals(ctx.response.body, []);
+      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
+        0
+      ];
+    // Start date should be reset to now since the old streak expired
+    assertEquals(Number(updatedUser.streak_start_date), now);
+    // Last updated should be now
+    assertEquals(Number(updatedUser.streak_last_updated), now);
   },
 });

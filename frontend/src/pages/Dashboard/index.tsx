@@ -17,7 +17,7 @@ export default function DashboardPage() {
       description: "Start learning with flashcards",
       icon: "🎯",
       path: "/learn/temp",
-      color: "#4CAF50",
+      colorClass: "card-green",
       stats: "12 cards ready",
     },
     {
@@ -25,7 +25,7 @@ export default function DashboardPage() {
       description: "Manage your flashcard collections",
       icon: "📚",
       path: "/sets",
-      color: "#2196F3",
+      colorClass: "card-blue",
       stats: "5 active sets",
     },
     {
@@ -33,7 +33,7 @@ export default function DashboardPage() {
       description: "View your learning analytics",
       icon: "📊",
       path: "/progress",
-      color: "#FF9800",
+      colorClass: "card-orange",
       stats: "85% accuracy",
     },
     {
@@ -41,7 +41,7 @@ export default function DashboardPage() {
       description: "Account settings and preferences",
       icon: "👤",
       path: "/profile",
-      color: "#9C27B0",
+      colorClass: "card-purple",
       stats: "Level 3",
     },
   ];
@@ -105,10 +105,10 @@ export default function DashboardPage() {
           <div class="nav-grid">
             {navigationCards.map((card, index) => (
               <button
+                type="button"
                 key={index}
-                class="nav-card"
+                class={`nav-card ${card.colorClass}`}
                 onClick={() => location.route(card.path)}
-                style={{ borderLeftColor: card.color }}
               >
                 <div class="nav-card-header">
                   <span class="nav-icon">{card.icon}</span>

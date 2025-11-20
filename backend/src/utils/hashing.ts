@@ -4,7 +4,7 @@ function hexToUint8Array(hex: string): Uint8Array<ArrayBuffer> {
   }
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    bytes[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
   }
   return bytes;
 }
@@ -12,8 +12,8 @@ function hexToUint8Array(hex: string): Uint8Array<ArrayBuffer> {
 export async function pbkdf2(
   password: string,
   saltHex: string, // hex-encoded salt
-  iterations: number,
-  keyLength: number, // in bytes
+  iterations: number = 100000,
+  keyLength: number = 64, // in bytes
   hash: "SHA-256" | "SHA-512" = "SHA-256",
 ): Promise<Uint8Array> {
   const enc = new TextEncoder();
@@ -45,4 +45,29 @@ export async function pbkdf2(
 
 export function toHex(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export function genSalt() {
+  return crypto.getRandomValues(new Uint8Array(16))
+    .reduce((s, b) => s + b.toString(16).padStart(2, "0"), "");
+}
+
+if (import.meta.main) {
+  const [password, saltHex] = Deno.args;
+  if (!password) {
+    console.error(
+      "Usage: deno run -A hashing.ts <password> [salt_hex] [iterations=100000] [keylen=64] [SHA-256|SHA-512]",
+    );
+    Deno.exit(1);
+  }
+
+  const salt = saltHex || genSalt();
+
+  const key = await pbkdf2(
+    password,
+    salt,
+  );
+
+  console.info("salt:", salt);
+  console.info("key:", toHex(key));
 }
