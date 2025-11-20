@@ -102,9 +102,13 @@ body {
 
 main {
   flex: auto;
+}
+
+/* Only apply centering styles to pages that need it (not dashboard or profile) */
+main:has(:not(.dashboard):not(.profile-container)) {
   display: flex;
   align-items: center;
-  max-width: 1600px; /*Changed to 1600px for it to center the dashboard page */
+  max-width: 1600px;
   margin: 0 auto;
   text-align: center;
 }
