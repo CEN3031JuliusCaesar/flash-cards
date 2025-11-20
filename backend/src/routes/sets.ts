@@ -310,7 +310,7 @@ export function createSetsRouter(db: Database) {
   router.get("/owned/:username", (ctx) => {
     const { username } = ctx.params;
 
-    const data: { id: string; title: string }[] = db.sql<
+    const data = db.sql<
       { id: string; title: string }
     >`
       SELECT id, title
