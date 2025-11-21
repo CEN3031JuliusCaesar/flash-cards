@@ -1,42 +1,23 @@
 import { Router } from "@oak/oak";
-import {
-  INVALID_REQUEST,
-  NO_SESSION_TOKEN,
-  UNAUTHORIZED,
-} from "./constants.ts";
+import { CARD_NOT_FOUND, FORBIDDEN, INVALID_REQUEST } from "./constants.ts";
 
 import { Database } from "@db/sqlite";
 import { Snowflake } from "../utils/snowflake.ts";
-import { SessionResult } from "./sets.ts";
+import { getSession } from "../utils/sessionkey.ts";
+import {
+  CardProgressBasicView,
+  CardsBasicView,
+  SetsIdView,
+  SetsOwnerView,
+} from "../types/database.ts";
 
 export function createCardRouter(db: Database) {
   const router = new Router();
 
   // Create a new card
   router.post("/create", async (ctx) => {
-    const session = await ctx.cookies.get("SESSION");
-
-    if (session == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 403;
-      return;
-    }
-
-    const username = db.sql<SessionResult>`
-      SELECT username FROM Sessions
-      WHERE token = ${session}
-      AND expires > strftime('%s', 'now');
-    `[0]?.username;
-
-    if (username == null) {
-      ctx.response.body = {
-        error: UNAUTHORIZED,
-      };
-      ctx.response.status = 403;
-      return;
-    }
+    const username = await getSession(ctx, db);
+    if (!username) return;
 
     const { set_id, front, back } = await ctx.request.body.json();
 
@@ -53,7 +34,7 @@ export function createCardRouter(db: Database) {
     }
 
     // Check if user is authorized to add cards to this set (either owner or has edit permission)
-    const setInfo = db.sql`
+    const setInfo = db.sql<SetsOwnerView>`
       SELECT owner FROM Sets WHERE id = ${set_id};
     `;
 
@@ -72,7 +53,7 @@ export function createCardRouter(db: Database) {
 
     if (!isOwner) {
       ctx.response.body = {
-        error: UNAUTHORIZED,
+        error: FORBIDDEN,
       };
       ctx.response.status = 403;
       return;
@@ -100,38 +81,57 @@ export function createCardRouter(db: Database) {
   router.get("/:cardId", (ctx) => {
     const { cardId } = ctx.params;
 
-    const data = db.sql`
+    const data = db.sql<CardsBasicView>`
       SELECT id, set_id, front, back FROM Cards
       WHERE id = ${cardId};
     `;
 
-    ctx.response.body = data;
+    if (data.length === 0) {
+      ctx.response.body = { error: CARD_NOT_FOUND };
+      ctx.response.status = 404;
+      return;
+    }
+
+    ctx.response.body = data[0]; // Return single card object instead of array
+    ctx.response.status = 200;
   });
 
   // get card progress - Returns the progress data for a specific card based on user session
   router.get("/:cardId/progress", async (ctx) => {
-    const session = await ctx.cookies.get("SESSION");
-
-    if (session == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 401;
-      return;
-    }
+    const username = await getSession(ctx, db);
+    if (!username) return;
 
     const { cardId } = ctx.params;
 
-    const data = db.sql`
+    // First check if the card exists
+    const cardExists = db.sql<SetsIdView>`
+      SELECT id FROM Cards
+      WHERE id = ${cardId};
+    `;
+
+    if (cardExists.length === 0) {
+      ctx.response.body = { error: CARD_NOT_FOUND };
+      ctx.response.status = 404;
+      return;
+    }
+
+    const data = db.sql<CardProgressBasicView>`
       SELECT cp.points, cp.last_reviewed
       FROM CardProgress cp
-      JOIN Sessions s ON cp.username = s.username
-      WHERE s.token = ${session}
-        AND s.expires > strftime('%s', 'now')
+      WHERE cp.username = ${username}
         AND cp.card_id = ${cardId};
     `;
 
-    ctx.response.body = data;
+    // If progress data exists, return the first record; otherwise return default values
+    if (data.length > 0) {
+      ctx.response.body = data[0]; // Return single progress object instead of array
+    } else {
+      ctx.response.body = {
+        points: 0,
+        last_reviewed: 0,
+      }; // Return default progress when no progress exists
+    }
+    ctx.response.status = 200;
   });
 
   return router;
