@@ -2,11 +2,9 @@ import { testing } from "@oak/oak";
 import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
-import {
-  INVALID_REQUEST,
-  NO_SESSION_TOKEN,
-  UNAUTHORIZED,
-} from "./constants.ts";
+import { FORBIDDEN, INVALID_REQUEST, NO_SESSION_TOKEN } from "./constants.ts";
+import { CardsBasicView } from "../types/database.ts";
+
 import {
   createBack,
   createCard,
@@ -34,14 +32,12 @@ Deno.test({
 
     await mw(cardCtx, next);
 
-    assertEquals(cardCtx.response.body, [
-      {
-        back: card.back,
-        front: card.front,
-        id: card.id,
-        set_id: card.set.id,
-      },
-    ]);
+    assertEquals(cardCtx.response.body, {
+      back: card.back,
+      front: card.front,
+      id: card.id,
+      set_id: card.set.id,
+    });
   },
 });
 
@@ -71,12 +67,10 @@ Deno.test({
     await mw(progressCtx, next);
     await mw(failCtx, next);
 
-    assertEquals(progressCtx.response.body, [
-      {
-        last_reviewed: cardProgress.studyTime,
-        points: cardProgress.points,
-      },
-    ]);
+    assertEquals(progressCtx.response.body, {
+      last_reviewed: cardProgress.studyTime,
+      points: cardProgress.points,
+    });
     assertEquals(progressCtx.response.status, 200);
     assertEquals(failCtx.response.body, { error: NO_SESSION_TOKEN });
     assertEquals(failCtx.response.status, 401);
@@ -130,7 +124,9 @@ Deno.test({
     assertEquals(responseBody.back, back);
 
     // Verify the card was actually created in the database
-    const createdCards = db.sql`SELECT * FROM Cards WHERE set_id = ${set.id}`;
+    const createdCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE set_id = ${set.id}`;
     assertEquals(createdCards.length, 1);
     assertEquals(createdCards[0].front, front);
     assertEquals(createdCards[0].back, back);
@@ -166,11 +162,13 @@ Deno.test({
 
     await mw(createCtx, next);
 
-    assertEquals(createCtx.response.status, 403);
+    assertEquals(createCtx.response.status, 401);
     assertEquals(createCtx.response.body, { error: NO_SESSION_TOKEN });
 
     // Verify no card was created in the database
-    const createdCards = db.sql`SELECT * FROM Cards WHERE set_id = ${set.id}`;
+    const createdCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE set_id = ${set.id}`;
     assertEquals(createdCards.length, 0);
   },
 });
@@ -208,10 +206,12 @@ Deno.test({
     await mw(createCtx, next);
 
     assertEquals(createCtx.response.status, 403);
-    assertEquals(createCtx.response.body, { error: UNAUTHORIZED });
+    assertEquals(createCtx.response.body, { error: FORBIDDEN });
 
     // Verify no card was created in the database
-    const createdCards = db.sql`SELECT * FROM Cards WHERE set_id = ${set.id}`;
+    const createdCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE set_id = ${set.id}`;
     assertEquals(createdCards.length, 0);
   },
 });
@@ -250,7 +250,9 @@ Deno.test({
     assertEquals(createCtx.response.body, { error: INVALID_REQUEST });
 
     // Verify no card was created in the database
-    const createdCards = db.sql`SELECT * FROM Cards WHERE set_id = ${set.id}`;
+    const createdCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE set_id = ${set.id}`;
     assertEquals(createdCards.length, 0);
   },
 });
@@ -290,7 +292,9 @@ Deno.test({
     assertEquals(createCtx.response.body, { error: INVALID_REQUEST });
 
     // Verify no card was created in the database
-    const createdCards = db.sql`SELECT * FROM Cards WHERE set_id = ${set.id}`;
+    const createdCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE set_id = ${set.id}`;
     assertEquals(createdCards.length, 0);
   },
 });
@@ -330,7 +334,9 @@ Deno.test({
 
     // Verify no card was created in the database
     const createdCards = db
-      .sql`SELECT * FROM Cards WHERE set_id = ${"nonexistent_set_id"}`;
+      .sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE set_id = ${"nonexistent_set_id"}`;
     assertEquals(createdCards.length, 0);
   },
 });

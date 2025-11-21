@@ -120,10 +120,11 @@ Deno.test({
 
     updateStreakForUser(db, user.username);
 
-    const updatedUser =
-      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
-        0
-      ];
+    const updatedUser = db.sql<
+      { streak_start_date: number | null; streak_last_updated: number | null }
+    >`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
+      0
+    ];
     assertEquals(Number(updatedUser.streak_start_date), now);
     assertEquals(Number(updatedUser.streak_last_updated), now);
   },
@@ -149,10 +150,11 @@ Deno.test({
     // Use the helper function directly
     updateStreakForUser(db, user.username);
 
-    const updatedUser =
-      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
-        0
-      ];
+    const updatedUser = db.sql<
+      { streak_start_date: number | null; streak_last_updated: number | null }
+    >`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
+      0
+    ];
     // Start date should remain the same since we're continuing the streak
     assertEquals(
       Number(updatedUser.streak_start_date),
@@ -180,10 +182,15 @@ Deno.test({
       streak_last_updated = ${now - 40 * HOURS_IN_SECONDS}
     WHERE username = ${user.username}`;
 
+    const oldNow = Date.now;
+    Date.now = () => now * 1000;
     updateStreakForUser(db, user.username);
+    Date.now = oldNow;
 
     const updatedUser =
-      db.sql`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
+      db.sql<
+        { streak_start_date: number | null; streak_last_updated: number | null }
+      >`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
         0
       ];
     // Start date should be reset to now since the old streak expired
