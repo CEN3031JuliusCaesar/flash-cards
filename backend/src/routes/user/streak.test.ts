@@ -187,12 +187,11 @@ Deno.test({
     updateStreakForUser(db, user.username);
     Date.now = oldNow;
 
-    const updatedUser =
-      db.sql<
-        { streak_start_date: number | null; streak_last_updated: number | null }
-      >`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
-        0
-      ];
+    const updatedUser = db.sql<
+      { streak_start_date: number | null; streak_last_updated: number | null }
+    >`SELECT streak_start_date, streak_last_updated FROM Users WHERE username = ${user.username};`[
+      0
+    ];
     // Start date should be reset to now since the old streak expired
     assertEquals(Number(updatedUser.streak_start_date), now);
     // Last updated should be now
