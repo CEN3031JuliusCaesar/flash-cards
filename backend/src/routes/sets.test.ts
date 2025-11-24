@@ -2,8 +2,8 @@ import { testing } from "@oak/oak";
 import { assertEquals, assertNotEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
-import { NO_SESSION_TOKEN } from "./constants.ts";
-import { SearchResult, TrackedListResponse } from "./sets.ts";
+import { NO_SESSION_TOKEN, SET_TRACKED, SET_UNTRACKED } from "./constants.ts";
+import { SearchResult } from "./sets.ts";
 import {
   createCard,
   createCardProgress,
@@ -15,6 +15,7 @@ import {
   createTracking,
   createUser,
 } from "../utils/testing.ts";
+import { SetsBasicView } from "../types/database.ts";
 
 Deno.test({
   name: "Create Set - Success",
@@ -40,7 +41,8 @@ Deno.test({
 
     assertEquals(ctx.response.status, 200);
     const set = db.sql<{ title: string; owner: string }>`
-      SELECT * from Sets
+      SELECT id, owner, title
+      FROM Sets
       WHERE title = ${testSet.title}
     `;
     assertEquals(set.length, 1);
@@ -67,7 +69,7 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.status, 403);
+    assertEquals(ctx.response.status, 401);
   },
 });
 
@@ -123,7 +125,8 @@ Deno.test({
 
     assertEquals(ctx.response.status, 200);
     const set_query = db.sql<{ title: string; owner: string }>`
-      SELECT * from Sets
+      SELECT id, owner, title
+      FROM Sets
       WHERE id = ${set.id}
     `;
     assertEquals(set_query.length, 0);
@@ -148,9 +151,10 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.status, 403);
+    assertEquals(ctx.response.status, 401);
     const set_query = db.sql<{ title: string; owner: string }>`
-      SELECT * from Sets
+      SELECT id, owner, title
+      FROM Sets
       WHERE id = ${set.id}
     `;
     assertEquals(set_query.length, 1);
@@ -182,7 +186,8 @@ Deno.test({
 
     assertEquals(ctx.response.status, 403);
     const set_query = db.sql<{ title: string; owner: string }>`
-      SELECT * from Sets
+      SELECT id, owner, title
+      FROM Sets
       WHERE id = ${set.id}
     `;
     assertEquals(set_query.length, 1);
@@ -299,9 +304,10 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.status, 403);
+    assertEquals(ctx.response.status, 401);
     const set_query = db.sql<{ title: string; owner: string }>`
-      SELECT * from Sets
+      SELECT id, owner, title
+      FROM Sets
       WHERE id = ${set1.id}
     `;
     assertEquals(set_query.length, 1);
@@ -337,7 +343,8 @@ Deno.test({
     await mw(ctx, next);
     assertEquals(ctx.response.status, 403);
     const set_query = db.sql<{ title: string; owner: string }>`
-      SELECT * from Sets
+      SELECT id, owner, title
+      FROM Sets
       WHERE id = ${set1.id}
     `;
     assertEquals(set_query.length, 1);
@@ -445,7 +452,7 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.body, { message: "Set successfully tracked" });
+    assertEquals(ctx.response.body, { message: SET_TRACKED });
     assertEquals(ctx.response.status, 200);
 
     const trackedSets = db
@@ -476,7 +483,7 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.body, { message: "Set already tracked" });
+    assertEquals(ctx.response.body, { message: SET_TRACKED });
     assertEquals(ctx.response.status, 200);
   },
 });
@@ -577,7 +584,7 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.body, { message: "Set successfully untracked" });
+    assertEquals(ctx.response.body, { message: SET_UNTRACKED });
     assertEquals(ctx.response.status, 200);
 
     const trackedSets = db
@@ -607,7 +614,7 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.body, { message: "Set was not being tracked" });
+    assertEquals(ctx.response.body, { message: SET_UNTRACKED });
     assertEquals(ctx.response.status, 200);
   },
 });
@@ -634,7 +641,7 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.body, { isTracked: true });
+    assertEquals(ctx.response.body, { isTracked: SET_TRACKED });
     assertEquals(ctx.response.status, 200);
   },
 });
@@ -660,7 +667,7 @@ Deno.test({
 
     await mw(ctx, next);
 
-    assertEquals(ctx.response.body, { isTracked: false });
+    assertEquals(ctx.response.body, { isTracked: SET_UNTRACKED });
     assertEquals(ctx.response.status, 200);
   },
 });
@@ -1036,8 +1043,8 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.body, [
-      { id: set1.id, title: set1.title },
-      { id: set2.id, title: set2.title },
+      { id: set1.id, title: set1.title, owner: user.username },
+      { id: set2.id, title: set2.title, owner: user.username },
     ]);
   },
 });
@@ -1271,7 +1278,7 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(Array.isArray(ctx.response.body), true);
-    const body = ctx.response.body as TrackedListResponse;
+    const body = ctx.response.body as SetsBasicView[];
     assertEquals(body.length, 2);
 
     // Check that both tracked sets are returned
