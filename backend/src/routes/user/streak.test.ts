@@ -3,7 +3,7 @@ import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../../db.ts";
 import { createAPIRouter } from "../combined.ts";
 import { NO_SESSION_TOKEN } from "../constants.ts";
-import { createSession, createUser } from "../../utils/testing.ts";
+import { createSession, createUser, mockDateNow } from "../../utils/testing.ts";
 import { updateStreakForUser } from "./streak.ts";
 
 const HOURS_IN_SECONDS = 3600;
@@ -101,6 +101,7 @@ Deno.test({
 Deno.test({
   name: "Streak update works and sets start date if no previous streak",
   async fn() {
+    using _ = mockDateNow();
     const db = memDB();
     await initializeDB(db);
 
@@ -133,6 +134,8 @@ Deno.test({
 Deno.test({
   name: "Streak update continues existing streak if within 36 hours",
   async fn() {
+    using _ = mockDateNow();
+
     const db = memDB();
     await initializeDB(db);
 
@@ -168,6 +171,7 @@ Deno.test({
 Deno.test({
   name: "Streak reset after more than 36 hours",
   async fn() {
+    using _ = mockDateNow();
     const db = memDB();
     await initializeDB(db);
 
@@ -182,10 +186,7 @@ Deno.test({
       streak_last_updated = ${now - 40 * HOURS_IN_SECONDS}
     WHERE username = ${user.username}`;
 
-    const oldNow = Date.now;
-    Date.now = () => now * 1000;
     updateStreakForUser(db, user.username);
-    Date.now = oldNow;
 
     const updatedUser = db.sql<
       { streak_start_date: number | null; streak_last_updated: number | null }

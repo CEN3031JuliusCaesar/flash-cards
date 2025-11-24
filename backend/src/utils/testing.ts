@@ -205,3 +205,16 @@ export async function createCardProgress(
     studyTime,
   };
 }
+
+export function mockDateNow() {
+  const oldNow = Date.now;
+
+  const now = Date.now();
+  Date.now = () => now;
+
+  return {
+    [Symbol.dispose]() {
+      Date.now = oldNow;
+    },
+  };
+}
