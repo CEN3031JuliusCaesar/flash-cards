@@ -24,7 +24,7 @@ export default function DashboardPage() {
       title: "Study Sets",
       description: "Manage your flashcard collections",
       icon: "📚",
-      path: "/sets",
+      path: "/studysets",
       colorClass: "card-blue",
       stats: "5 active sets",
     },

@@ -1,0 +1,121 @@
+/* cards are 320px x 200px */
+
+.set-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, 320px);
+  max-width: calc(320px * 7 + 20px * 6); 
+  justify-content: start;
+  margin-bottom: 40px;
+  gap: 20px;
+}
+
+
+.set-card {
+  /* used to push card info to bottom */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  background: #fff;
+  border: 2px solid #bcbcbc;
+  border-radius: 12px;
+  padding: 15px 20px;
+  position: relative;
+  min-height: 130px;
+  color: black;
+  min-height: 200px; 
+  box-sizing: border-box;
+
+  box-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+}
+
+/* card info pushed to bottom */
+.set-card-info {
+  margin-top: auto;
+  font-size: 0.9rem;
+  line-height: 1.3rem;
+}
+
+.set-card-pencil {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 18px;
+  cursor: pointer;
+  user-select: none;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.set-card-pencil:hover {
+  opacity: 1;
+}
+
+.set-card-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  position: relative;
+  /* This was added to prevent pencil overlap */
+  padding-right: 28px; 
+  word-break: break-word; 
+}
+
+.set-card-info {
+  font-size: 0.9rem;
+  line-height: 1.3rem;
+}
+
+.creator {
+  color: #006 6cc;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.set-card-icon {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-size: 22px;
+}
+
+.icon-check {
+  color: green;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.icon-check:hover {
+  opacity: 1;
+}
+
+.icon-plus {
+  color: #777;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.icon-plus:hover {
+  opacity: 1;
+}
+
+.create-new-set {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+  cursor: pointer;
+  background: #f0f0f0;
+  border: 2px dashed #bcbcbc;
+  color: #333;
+  transition: background 0.2s ease;
+}
+
+.create-new-set:hover {
+  background: #e0e0e0;
+}
