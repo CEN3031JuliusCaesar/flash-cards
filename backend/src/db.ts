@@ -32,32 +32,18 @@ export async function initializeDB(db: Database) {
   await migrationRunner.runMigrations();
 }
 
+import { loadDevFixturesData } from "./fixtures/dev-fixtures.ts";
+
 /**
- * Loads development fixtures data into the database from all .sql files in the fixtures directory
+ * Loads development fixtures data into the database using TypeScript functions
  */
 export async function loadDevFixtures(db: Database) {
-  const fixturesDir = "./src/fixtures";
   try {
-    const entries = [];
-    for await (const entry of Deno.readDir(fixturesDir)) {
-      if (entry.name.endsWith(".sql")) {
-        entries.push(entry);
-      }
-    }
-
-    // sort entries alphabetically by name
-    entries.sort((a, b) => a.name.localeCompare(b.name));
-
-    for (const entry of entries) {
-      const filePath = `${fixturesDir}/${entry.name}`;
-      console.info(`Loading fixture: ${entry.name}`);
-
-      const sqlContent = await Deno.readTextFile(filePath);
-
-      db.exec(sqlContent);
-    }
+    console.info("Loading development fixtures...");
+    await loadDevFixturesData(db);
+    console.info("✅ Development fixtures loaded successfully");
   } catch (error) {
-    console.error(`Error loading dev fixtures`);
+    console.error(`Error loading dev fixtures:`, error);
     throw error;
   }
 }

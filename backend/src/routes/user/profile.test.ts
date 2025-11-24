@@ -3,6 +3,7 @@ import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../../db.ts";
 import { createAPIRouter } from "../combined.ts";
 import { createSession, createUser } from "../../utils/testing.ts";
+import { UNAUTHORIZED } from "../constants.ts";
 
 Deno.test({
   name: "Get User Profile - Success",
@@ -208,7 +209,7 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.status, 403);
-    assertEquals(ctx.response.body, { error: "UNAUTHORIZED" });
+    assertEquals(ctx.response.body, { error: UNAUTHORIZED });
   },
 });
 

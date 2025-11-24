@@ -12,14 +12,14 @@ export type CardProgress = {
   last_reviewed: number;
 };
 
-export const getCardById = async (cardId: string): Promise<Card[]> => {
+export const getCardById = async (cardId: string): Promise<Card> => {
   const response = await api.get(`/api/cards/${cardId}`);
   return response.data;
 };
 
 export const getCardProgress = async (
   cardId: string,
-): Promise<CardProgress[]> => {
+): Promise<CardProgress> => {
   const response = await api.get(`/api/cards/${cardId}/progress`);
   return response.data;
 };
