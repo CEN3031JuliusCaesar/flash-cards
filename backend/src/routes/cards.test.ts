@@ -3,7 +3,7 @@ import { assertEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
 import { FORBIDDEN, INVALID_REQUEST, NO_SESSION_TOKEN } from "./constants.ts";
-import { CardsBasicView } from "../types/database.ts";
+import type { CardsBasicView } from "../types/database.ts";
 
 import {
   createBack,

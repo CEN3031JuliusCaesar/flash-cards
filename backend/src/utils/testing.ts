@@ -1,4 +1,4 @@
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { genSalt, pbkdf2, toHex } from "./hashing.ts";
 import { Snowflake } from "./snowflake.ts";
 import { generateSessionToken } from "./sessionkey.ts";

@@ -1,6 +1,6 @@
 import { NO_SESSION_TOKEN } from "../routes/constants.ts";
-import { Database } from "@db/sqlite";
-import { UsersUsernameView } from "../types/database.ts";
+import type { Database } from "@db/sqlite";
+import type { UsersUsernameView } from "../types/database.ts";
 
 export const generateSessionToken = () => {
   const CHARACTERS =

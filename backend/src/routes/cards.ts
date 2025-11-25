@@ -1,10 +1,10 @@
 import { Router } from "@oak/oak";
 import { CARD_NOT_FOUND, FORBIDDEN, INVALID_REQUEST } from "./constants.ts";
 
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { Snowflake } from "../utils/snowflake.ts";
 import { getSession } from "../utils/sessionkey.ts";
-import {
+import type {
   CardProgressBasicView,
   CardsBasicView,
   SetsIdView,
