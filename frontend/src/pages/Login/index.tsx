@@ -12,7 +12,11 @@ export default function Login() {
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: (creds: LoginParams) => login(creds),
     onSuccess: () => {
-      location.route("/");
+      if ("redirectTo" in location.query) {
+        location.route(decodeURIComponent(location.query.redirectTo));
+      } else {
+        location.route("/");
+      }
     },
   });
 
