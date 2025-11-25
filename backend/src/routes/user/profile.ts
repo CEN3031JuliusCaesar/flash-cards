@@ -2,7 +2,10 @@ import { Router } from "@oak/oak";
 import type { Database } from "@db/sqlite";
 import { UNAUTHORIZED } from "../constants.ts";
 import { getSession } from "../../utils/sessionkey.ts";
-import type { UsersSessionView, UsersSettingsView } from "../../types/database.ts";
+import type {
+  UsersSessionView,
+  UsersSettingsView,
+} from "../../types/database.ts";
 
 export function createProfileRouter(db: Database) {
   const router = new Router();
