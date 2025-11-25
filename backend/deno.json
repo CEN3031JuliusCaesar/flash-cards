@@ -3,12 +3,13 @@
   "name": "backend",
   "tasks": {
     "dev": "deno run --allow-net --allow-read --allow-write --allow-env --allow-ffi src/server.ts",
-    "build-frontend": "cd ../frontend && deno task build && cp -r dist ../backend/public"
+    "compile": "deno compile --allow-net --allow-read --allow-write --allow-env --allow-ffi --include src --include public --no-check src/server.ts"
   },
   "imports": {
     "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
     "@oak/oak": "jsr:@oak/oak@^17.1.6",
     "@std/assert": "jsr:@std/assert@^1.0.15"
   },
-  "exports": {}
+  "exports": {},
+  "exclude": ["public/"]
 }

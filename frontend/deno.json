@@ -24,5 +24,6 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact"
   },
-  "exports": {}
+  "exports": {},
+  "exclude": ["dist/", ".vite/"]
 }

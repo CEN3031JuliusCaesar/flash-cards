@@ -27,7 +27,7 @@ app.use(async (ctx, next) => {
   if (ctx.request.url.pathname.startsWith("/assets/")) {
     const filePath = ctx.request.url.pathname;
     const success = await send(ctx, filePath, {
-      root: "./public",
+      root: import.meta.dirname + "/../public",
     });
     if (success) return;
   }
@@ -36,8 +36,7 @@ app.use(async (ctx, next) => {
 
 // Fallback to index.html for client-side routing
 app.use(async (ctx, _next) => {
-  const PUBLIC_DIR = "./public";
-  // const filePath = ctx.request.url.pathname;
+  const PUBLIC_DIR = import.meta.dirname + "/../public";
 
   // Only serve index.html for non-API routes that don't match static assets
   const success = await send(ctx, "/index.html", {

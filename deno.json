@@ -8,6 +8,10 @@
     },
     "dev:frontend": "deno task -f frontend dev",
     "dev:backend": "DEV=true deno task -f backend dev",
+    "prod:backend": {
+      "command": "deno task -f backend dev",
+      "dependencies": ["build"]
+    },
     "build": "deno task -f frontend build; rm -r ./backend/public; cp -r ./frontend/dist ./backend/public"
   },
   "nodeModulesDir": "auto"
