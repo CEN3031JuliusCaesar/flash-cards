@@ -67,9 +67,17 @@ export function createAuthRouter(db: Database) {
 
     const newSessionToken = generateSessionToken();
 
-    db.sql`INSERT INTO Sessions (username, token) VALUES (${user}, ${newSessionToken});`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${user}, ${newSessionToken}, ${
+      Date.now() / 1000 + 48 * 60 * 60
+    });`;
+
     ctx.cookies.set("SESSION", newSessionToken, {
       httpOnly: true,
+      maxAge: 48 * 60 * 60,
+      path: "/",
+    });
+    ctx.cookies.set("USERNAME", user, {
+      httpOnly: false,
       maxAge: 48 * 60 * 60,
       path: "/",
     });

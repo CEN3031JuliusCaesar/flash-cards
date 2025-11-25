@@ -1,18 +1,3 @@
-main.dashboard {
-  min-height: 100vh;
-  width: 100%;
-  max-width: 70em;
-  margin: 0 auto;
-  background: var(--gradient-background);
-  padding: var(--spacing-lg);
-  color: var(--color-text-primary);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  border-radius: var(--radius-xl);
-}
-
 /* Welcome Header Section */
 .welcome-header {
   background: var(--color-bg-primary);
@@ -360,17 +345,6 @@ main.dashboard {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  main.dashboard {
-    width: 100vw;
-    padding: 1rem;
-    background: var(--gradient-dark1);
-    border-radius: 0;
-
-    @media (prefers-color-scheme: dark) {
-      background: var(--gradient-dark2);
-    }
-  }
-
   .welcome-header {
     padding: var(--spacing-md) var(--spacing-lg);
     max-width: 100%;

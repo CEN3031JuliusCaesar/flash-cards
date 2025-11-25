@@ -39,14 +39,8 @@ export const updateSet = async (
   return response.data;
 };
 
-export const getTrackedSets = async (
-  study?: string,
-): Promise<Set> => {
-  let url = "/api/sets/tracked/list";
-  if (study !== undefined) {
-    url += `?study=${study}`;
-  }
-  const response = await api.get(url);
+export const getTrackedSets = async (): Promise<OwnedSet[]> => {
+  const response = await api.get("/api/sets/tracked/list");
   return response.data;
 };
 
@@ -76,7 +70,7 @@ export const untrackSet = async (
 
 export const getSetTrackedStatus = async (
   setId: string,
-): Promise<{ isTracked: boolean }> => {
+): Promise<{ isTracked: "SET_UNTRACKED" | "SET_TRACKED" }> => {
   const response = await api.get(`/api/sets/${setId}/tracked`);
   return response.data;
 };
@@ -84,6 +78,7 @@ export const getSetTrackedStatus = async (
 export type OwnedSet = {
   id: string;
   title: string;
+  owner: string;
 };
 
 export const getSetsByOwner = async (
