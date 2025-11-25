@@ -1,8 +1,9 @@
-= QuizLit
+# QuizLit
 
 Ramon Gonzalez Fernandez, Joseph Robinson, Trevor DeBord, Gerson Diaz
 
-== Quick Start
+## Quick Start
+
 With deno installed, run:
 
 ```sh
