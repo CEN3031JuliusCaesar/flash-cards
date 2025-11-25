@@ -12,7 +12,11 @@
       "command": "deno task -f backend dev",
       "dependencies": ["build"]
     },
-    "build": "deno task -f frontend build; rm -r ./backend/public; cp -r ./frontend/dist ./backend/public"
+    "build": "deno task -f frontend build; rm -r ./backend/public; cp -r ./frontend/dist ./backend/public",
+    "compile": {
+      "command": "deno task -f backend compile",
+      "dependencies": ["build"]
+    }
   },
   "nodeModulesDir": "auto"
 }
