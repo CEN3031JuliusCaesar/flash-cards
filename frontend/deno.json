@@ -25,5 +25,10 @@
     "jsxImportSource": "preact"
   },
   "exports": {},
-  "exclude": ["dist/", ".vite/"]
+  "exclude": ["dist/", ".vite/"],
+  "lint": {
+    "rules": {
+      "tags": ["jsx"]
+    }
+  }
 }
