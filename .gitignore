@@ -10,3 +10,5 @@
 *.sw?
 backend/database.sqlite
 coverage
+node_modules
+backend/public
