@@ -601,7 +601,7 @@ function getRelevantCards(
     points += pointsOffset;
 
     // add card if it's in reviewable state
-    if (daysSinceLastReview > Math.pow(2, points)) {
+    if (daysSinceLastReview >= Math.pow(2, points)) {
       relevantCards.push({
         id: card.id,
         set_id: card.set_id,

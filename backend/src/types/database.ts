@@ -109,3 +109,10 @@ export type RankedSetsWithCardsResult = RankedSetsResult & {
   card_front: string;
   card_back: string;
 };
+export type StudyCardResult = {
+  cardId: string;
+  result: string;
+  oldPoints: number;
+  newPoints: number;
+  lastReviewed: number;
+};
