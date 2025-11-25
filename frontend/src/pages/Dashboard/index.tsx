@@ -75,7 +75,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <main class="dashboard">
+    <>
       {/* Welcome Section at the top */}
       <div class="welcome-header">
         <h1>Welcome back! 👋</h1>
@@ -163,6 +163,6 @@ export default function DashboardPage() {
           </section>
         </div>
       </div>
-    </main>
+    </>
   );
 }

@@ -1,0 +1,91 @@
+.set-card {
+  height: var(--card-height);
+  max-width: var(--card-hiwidth);
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  background: var(--color-bg-primary);
+  border: var(--border-thin) solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-xl) var(--spacing-lg);
+
+  position: relative;
+  min-height: 130px;
+  color: var(--color-text-primary);
+  min-height: 200px;
+  box-sizing: border-box;
+
+  box-shadow: var(--shadow-md);
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: var(--color-bg-secondary);
+  }
+
+  &.create-new-set {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    border: var(--border-thin) dashed var(--color-border);
+    color: var(--color-text-secondary);
+  }
+}
+
+/* card info pushed to bottom */
+.set-card-info {
+  margin-top: auto;
+  font-size: 0.9rem;
+  line-height: 1.3rem;
+
+  .creator {
+    text-decoration: underline;
+  }
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.set-card-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  position: relative;
+  /* This was added to prevent pencil overlap */
+  padding-right: 28px;
+  word-break: break-word;
+}
+
+.set-card-icon {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  font-size: 22px;
+
+  .icon-check {
+    color: green;
+    font-weight: bold;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  .icon-plus {
+    color: #777;
+    font-weight: bold;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+    &:hover {
+      opacity: 1;
+    }
+  }
+}

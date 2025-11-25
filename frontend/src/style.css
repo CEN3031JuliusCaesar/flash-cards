@@ -197,17 +197,30 @@ header a:hover {
 }
 
 /* ==========================================
-   DARK MODE
+   Overall Styles
    ========================================== */
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --color-text-primary: #f7fafc;
-    --color-text-secondary: #e2e8f0;
-    --color-bg-primary: #2d3748;
-    --color-bg-secondary: #4a5568;
-    --color-border: #4a5568;
-    --gradient-background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
-    color: #ccc;
-    background-color: #1a1a1a;
+main {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 70em;
+  margin: 0 auto;
+  background: var(--gradient-background);
+  padding: var(--spacing-lg);
+  color: var(--color-text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  border-radius: var(--radius-xl);
+
+  @media (max-width: 768px) {
+    width: 100vw;
+    padding: 1rem;
+    background: var(--gradient-dark1);
+    border-radius: 0;
+
+    @media (prefers-color-scheme: dark) {
+      background: var(--gradient-dark2);
+    }
   }
-} */
+}
