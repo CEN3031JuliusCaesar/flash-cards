@@ -3,7 +3,7 @@ import {
   createSet,
   getSetsByOwner,
   getTrackedSets,
-  Set,
+  type Set,
   trackSet,
   untrackSet,
 } from "../../api/sets.ts";
