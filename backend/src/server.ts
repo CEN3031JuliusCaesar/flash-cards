@@ -26,6 +26,11 @@ app.use(router.allowedMethods());
 app.use(async (ctx, next) => {
   if (ctx.request.url.pathname.startsWith("/assets/")) {
     const filePath = ctx.request.url.pathname;
+
+    ctx.response.headers.set(
+      "Cache-Control",
+      "public, max-age=31536000, immutable",
+    );
     const success = await send(ctx, filePath, {
       root: import.meta.dirname + "/../public",
     });
@@ -39,6 +44,10 @@ app.use(async (ctx, _next) => {
   const PUBLIC_DIR = import.meta.dirname + "/../public";
 
   // Only serve index.html for non-API routes that don't match static assets
+  ctx.response.headers.set(
+    "Cache-Control",
+    "public, max-age=0, must-revalidate",
+  );
   const success = await send(ctx, "/index.html", {
     root: PUBLIC_DIR,
   });
