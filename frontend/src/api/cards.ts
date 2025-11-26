@@ -23,3 +23,16 @@ export const getCardProgress = async (
   const response = await api.get(`/api/cards/${cardId}/progress`);
   return response.data;
 };
+
+export type CreateCardParams = {
+  set_id: string;
+  front: string;
+  back: string;
+};
+
+export const createCard = async (
+  params: CreateCardParams,
+): Promise<Card> => {
+  const response = await api.post(`/api/cards/create`, params);
+  return response.data;
+};
