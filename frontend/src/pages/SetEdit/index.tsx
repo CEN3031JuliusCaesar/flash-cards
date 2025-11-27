@@ -86,7 +86,7 @@ export default function SetEditPage() {
             <FlashCard
               front={front}
               back={back}
-              editable={true}
+              editable
               onFrontChange={setFront}
               onBackChange={setBack}
             />
