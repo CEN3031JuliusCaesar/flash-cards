@@ -8,39 +8,71 @@ export interface FlashCardProps {
   onBackChange?: (value: string) => void;
 }
 
-export function FlashCard({ front, back, editable = false, onFrontChange, onBackChange }: FlashCardProps) {
+export function FlashCard(
+  { front, back, editable = false, onFrontChange, onBackChange }:
+    FlashCardProps,
+) {
   return (
     <div className="flash-card">
-      <div className="flash-card-labels" style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: '8px' }}>
-        <span style={{ fontWeight: 'bold' }}>Front:</span>
-        <span style={{ fontWeight: 'bold' }}>Back:</span>
+      <div
+        className="flash-card-labels"
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "space-between",
+          width: "100%",
+          marginBottom: "8px",
+        }}
+      >
+        <span style={{ fontWeight: "bold" }}>Front:</span>
+        <span style={{ fontWeight: "bold" }}>Back:</span>
       </div>
       <div className="flash-card-content">
-        <div className="flash-card-front" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
-          {editable ? (
-            <textarea
-              id="front-input"
-              style={{ width: '90%', minHeight: '60px', resize: 'vertical' }}
-              value={front}
-              placeholder="Enter front text..."
-              onInput={(e: Event) => onFrontChange && onFrontChange((e.target as HTMLTextAreaElement).value)}
-            />
-          ) : (
-            front
-          )}
+        <div
+          className="flash-card-front"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            flex: 1,
+          }}
+        >
+          {editable
+            ? (
+              <textarea
+                id="front-input"
+                style={{ width: "90%", minHeight: "60px", resize: "vertical" }}
+                value={front}
+                placeholder="Enter front text..."
+                onInput={(e: Event) =>
+                  onFrontChange &&
+                  onFrontChange((e.target as HTMLTextAreaElement).value)}
+              />
+            )
+            : front}
         </div>
-        <div className="flash-card-back" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
-          {editable ? (
-            <textarea
-              id="back-input"
-              style={{ width: '90%', minHeight: '60px', resize: 'vertical' }}
-              value={back}
-              placeholder="Enter back text..."
-              onInput={(e: Event) => onBackChange && onBackChange((e.target as HTMLTextAreaElement).value)}
-            />
-          ) : (
-            back
-          )}
+        <div
+          className="flash-card-back"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            flex: 1,
+          }}
+        >
+          {editable
+            ? (
+              <textarea
+                id="back-input"
+                style={{ width: "90%", minHeight: "60px", resize: "vertical" }}
+                value={back}
+                placeholder="Enter back text..."
+                onInput={(e: Event) =>
+                  onBackChange &&
+                  onBackChange((e.target as HTMLTextAreaElement).value)}
+              />
+            )
+            : back}
         </div>
       </div>
     </div>
