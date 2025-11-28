@@ -1,15 +1,18 @@
 import { Router } from "@oak/oak";
 import { CARD_NOT_FOUND, FORBIDDEN, INVALID_REQUEST } from "./constants.ts";
 
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { Snowflake } from "../utils/snowflake.ts";
 import { getSession } from "../utils/sessionkey.ts";
-import {
+import { updateStreakForUser } from "./user/streak.ts";
+import type {
   CardProgressBasicView,
   CardsBasicView,
   SetsIdView,
   SetsOwnerView,
+  StudyCardResult,
 } from "../types/database.ts";
+import { calculateAdjustedPoints } from "../utils/points.ts";
 
 export function createCardRouter(db: Database) {
   const router = new Router();
@@ -122,15 +125,149 @@ export function createCardRouter(db: Database) {
         AND cp.card_id = ${cardId};
     `;
 
-    // If progress data exists, return the first record; otherwise return default values
     if (data.length > 0) {
-      ctx.response.body = data[0]; // Return single progress object instead of array
+      const now = Math.floor(Date.now() / 1000);
+      const storedPoints = data[0].points;
+      const lastReviewed = data[0].last_reviewed;
+
+      const daysSinceLastReview = (now - lastReviewed) / (24 * 60 * 60);
+
+      // Adjust points based on time elapsed since last review using the existing algorithm
+      // This accounts for the natural decay of points when cards are not studied in time
+      const currentPoints = calculateAdjustedPoints(
+        storedPoints,
+        daysSinceLastReview,
+      );
+
+      ctx.response.body = {
+        points: currentPoints,
+        last_reviewed: lastReviewed,
+      };
     } else {
       ctx.response.body = {
         points: 0,
         last_reviewed: 0,
       }; // Return default progress when no progress exists
     }
+    ctx.response.status = 200;
+  });
+
+  // update card progress after a study session - Updates points and last_reviewed based on study result
+  router.post("/:cardId/study", async (ctx) => {
+    const username = await getSession(ctx, db);
+    if (!username) return;
+
+    const { cardId } = ctx.params;
+
+    // Validate request body
+    const body = await ctx.request.body.json();
+    const { result } = body;
+
+    if (
+      typeof result !== "string" || !["correct", "incorrect"].includes(result)
+    ) {
+      ctx.response.body = {
+        error: INVALID_REQUEST,
+        message: "Result must be 'correct' or 'incorrect'",
+      };
+      ctx.response.status = 400;
+      return;
+    }
+
+    // Check if card exists
+    const cardExists = db.sql<SetsIdView>`
+      SELECT id FROM Cards
+      WHERE id = ${cardId};
+    `;
+
+    if (cardExists.length === 0) {
+      ctx.response.body = { error: CARD_NOT_FOUND };
+      ctx.response.status = 404;
+      return;
+    }
+
+    // Get current progress or create default
+    const currentProgress = db.sql<CardProgressBasicView>`
+      SELECT points, last_reviewed
+      FROM CardProgress
+      WHERE username = ${username} AND card_id = ${cardId};
+    `;
+
+    const now = Math.floor(Date.now() / 1000);
+    const storedPoints = currentProgress.length > 0
+      ? currentProgress[0].points
+      : 0;
+    const lastReviewed = currentProgress.length > 0
+      ? currentProgress[0].last_reviewed
+      : 0;
+
+    // Calculate days since last review
+    const daysSinceLastReview = (now - lastReviewed) / (24 * 60 * 60);
+
+    // Adjust points based on time elapsed since last review using the existing algorithm
+    // This accounts for the natural decay of points when cards are not studied in time
+    const currentPoints = calculateAdjustedPoints(
+      storedPoints,
+      daysSinceLastReview,
+    );
+
+    // Verify that enough time has passed since last study (2^points days rule)
+    // Only apply this validation if there was a previous review (not for new cards)
+    const requiredDays = Math.pow(2, currentPoints);
+
+    console.log(daysSinceLastReview, requiredDays);
+    if (lastReviewed !== 0 && daysSinceLastReview <= requiredDays) {
+      ctx.response.body = {
+        error: "TOO_SOON",
+        message: `Must wait ${
+          Math.ceil(requiredDays - daysSinceLastReview)
+        } more day(s) before reviewing again`,
+        currentPoints,
+        requiredDays,
+        daysSinceLastReview,
+      };
+      ctx.response.status = 425; // Too Early status code
+      return;
+    }
+
+    // Update points based on the study result
+    let newPoints;
+    if (result === "correct") {
+      newPoints = currentPoints + 1;
+    } else {
+      newPoints = Math.max(0, currentPoints - 1); // Reset to 0 when incorrect
+    }
+
+    // Update or insert the card progress record
+    try {
+      db.sql`
+        INSERT INTO CardProgress (username, card_id, points, last_reviewed)
+        VALUES (${username}, ${cardId}, ${newPoints}, ${now})
+        ON CONFLICT(username, card_id) DO UPDATE SET
+          points = ${newPoints},
+          last_reviewed = ${now}
+      `;
+    } catch (error) {
+      ctx.response.body = {
+        error: "FAILED_TO_UPDATE_PROGRESS",
+        message: "Could not update card progress",
+      };
+      ctx.response.status = 500;
+      console.error(error);
+      return;
+    }
+
+    // Update user streak to reflect studying activity
+    updateStreakForUser(db, username);
+
+    // Respond with updated progress
+    ctx.response.body = {
+      cardId,
+      result,
+      oldPoints: currentPoints,
+      newPoints,
+      lastReviewed: now,
+    } satisfies StudyCardResult;
     ctx.response.status = 200;
   });
 

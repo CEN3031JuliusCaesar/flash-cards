@@ -6,10 +6,13 @@ export default defineConfig({
   build: {
     minify: false,
   },
-  plugins: [preact()],
+  plugins: [
+    preact(),
+  ],
   server: {
     proxy: {
       "/api": "http://localhost:8000",
     },
+    allowedHosts: [".trycloudflare.com"],
   },
 });

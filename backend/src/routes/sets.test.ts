@@ -3,7 +3,7 @@ import { assertEquals, assertNotEquals } from "@std/assert";
 import { initializeDB, memDB } from "../db.ts";
 import { createAPIRouter } from "./combined.ts";
 import { NO_SESSION_TOKEN, SET_TRACKED, SET_UNTRACKED } from "./constants.ts";
-import { SearchResult } from "./sets.ts";
+import type { SearchResult } from "./sets.ts";
 import {
   createCard,
   createCardProgress,
@@ -15,7 +15,7 @@ import {
   createTracking,
   createUser,
 } from "../utils/testing.ts";
-import { SetsBasicView } from "../types/database.ts";
+import type { SetsBasicView } from "../types/database.ts";
 
 Deno.test({
   name: "Create Set - Success",

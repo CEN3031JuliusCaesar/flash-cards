@@ -1,6 +1,6 @@
 import "../Login/style.css";
 
-import { register, RegisterParams } from "../../api/user/auth.ts";
+import { register, type RegisterParams } from "../../api/user/auth.ts";
 import { useState } from "preact/hooks";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "preact-iso/router";

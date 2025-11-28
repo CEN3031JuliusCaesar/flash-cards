@@ -1,4 +1,4 @@
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 
 interface MigrationFile {
   version: string;
@@ -14,7 +14,7 @@ export class MigrationRunner {
   }
 
   private async getMigrationFiles(): Promise<MigrationFile[]> {
-    const migrationsDir = "./src/migrations";
+    const migrationsDir = import.meta.dirname + "/../migrations";
     const migrationFiles: MigrationFile[] = [];
 
     for await (const file of Deno.readDir(migrationsDir)) {
@@ -73,7 +73,7 @@ export class MigrationRunner {
 
     for (const migration of pendingMigrations) {
       const migrationContent = await Deno.readTextFile(
-        `./src/migrations/${migration.version}_${migration.name}.up.sql`,
+        `${import.meta.dirname}/../migrations/${migration.version}_${migration.name}.up.sql`,
       );
 
       // Execute the migration in a transaction

@@ -1,5 +1,5 @@
 import "./style.css";
-import { login, LoginParams } from "../../api/user/auth.ts";
+import { login, type LoginParams } from "../../api/user/auth.ts";
 import { useState } from "preact/hooks";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation } from "preact-iso/router";
@@ -12,7 +12,11 @@ export default function Login() {
   const { mutate, isPending, isError, error } = useMutation({
     mutationFn: (creds: LoginParams) => login(creds),
     onSuccess: () => {
-      location.route("/");
+      if ("redirectTo" in location.query) {
+        location.route(decodeURIComponent(location.query.redirectTo));
+      } else {
+        location.route("/");
+      }
     },
   });
 

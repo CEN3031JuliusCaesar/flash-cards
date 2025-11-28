@@ -3,11 +3,11 @@ import {
   createSet,
   getSetsByOwner,
   getTrackedSets,
-  Set,
+  type Set,
   trackSet,
   untrackSet,
 } from "../../api/sets.ts";
-import { getUsernameFromCookie } from "../../utils/cookies.ts";
+import { useAuthRedirect } from "../../utils/cookies.ts";
 import "./style.css";
 import { useLocation } from "preact-iso";
 import { SetCard } from "../../components/SetCard.tsx";
@@ -16,7 +16,9 @@ export default function StudySetsPage() {
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  const username = getUsernameFromCookie() || "current_user";
+  const username = useAuthRedirect();
+
+  if (!username) return null;
 
   const {
     data: ownedSets = [],

@@ -1,9 +1,9 @@
 import { Router } from "@oak/oak";
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { generateSessionToken } from "../../utils/sessionkey.ts";
 import { genSalt, pbkdf2, toHex } from "../../utils/hashing.ts";
 import { INVALID_CREDENTIALS } from "../constants.ts";
-import { UsersSaltView, UsersUsernameView } from "../../types/database.ts";
+import type { UsersSaltView, UsersUsernameView } from "../../types/database.ts";
 
 export function createAuthRouter(db: Database) {
   const router = new Router();

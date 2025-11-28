@@ -8,10 +8,10 @@ import {
 } from "./constants.ts";
 
 import { Snowflake } from "../utils/snowflake.ts";
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { calculateAdjustedPoints } from "../utils/points.ts";
 import { getSession } from "../utils/sessionkey.ts";
-import {
+import type {
   CardProgressWithCardInfoResult,
   CardsBasicView,
   ChangesResult,
@@ -601,7 +601,7 @@ function getRelevantCards(
     points += pointsOffset;
 
     // add card if it's in reviewable state
-    if (daysSinceLastReview > Math.pow(2, points)) {
+    if (daysSinceLastReview >= Math.pow(2, points)) {
       relevantCards.push({
         id: card.id,
         set_id: card.set_id,
