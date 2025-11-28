@@ -20,7 +20,12 @@ export default function SetEditPage() {
   } = useQuery({
     queryKey: ["set", setId],
     queryFn: () => getSetById(setId),
-    enabled: !!setId,
+    enabled: Boolean(setId),
+    retry(fails, error) {
+      if (fails >= 3) return false;
+
+      return !error.message.includes("404");
+    },
   });
 
   const [front, setFront] = useState("");
@@ -50,10 +55,6 @@ export default function SetEditPage() {
     });
   };
 
-  if (!setId) {
-    return <div class="set-edit-page">No set id provided in URL</div>;
-  }
-
   if (isLoading) {
     return <div class="set-edit-page">Loading set...</div>;
   }
@@ -61,7 +62,12 @@ export default function SetEditPage() {
   if (error) {
     return (
       <div class="set-edit-page">
-        Error loading set: {String((error as Error).message)}
+        <div class="header">
+          <h3 onClick={() => location.route("/studysets")}>🡄 Back to Sets</h3>
+        </div>
+        {error.message.includes("404")
+          ? <>Set not found. Is the URL correct?</>
+          : <>Error loading set: {String((error as Error).message)}</>}
       </div>
     );
   }
