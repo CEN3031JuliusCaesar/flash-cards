@@ -1,4 +1,4 @@
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { createStreakRouter } from "./streak.ts";
 import { createAuthRouter } from "./auth.ts";
 import { createProfileRouter } from "./profile.ts";

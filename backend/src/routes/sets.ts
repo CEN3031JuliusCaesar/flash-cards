@@ -8,10 +8,10 @@ import {
 } from "./constants.ts";
 
 import { Snowflake } from "../utils/snowflake.ts";
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { calculateAdjustedPoints } from "../utils/points.ts";
 import { getSession } from "../utils/sessionkey.ts";
-import {
+import type {
   CardProgressWithCardInfoResult,
   CardsBasicView,
   ChangesResult,

@@ -1,7 +1,7 @@
 import { Router } from "@oak/oak";
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { getSession } from "../../utils/sessionkey.ts";
-import { StreakResult } from "../../types/database.ts";
+import type { StreakResult } from "../../types/database.ts";
 
 // helper function to update user streak - updates the streak timestamps
 export function updateStreakForUser(db: Database, username: string) {

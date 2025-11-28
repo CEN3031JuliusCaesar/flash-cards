@@ -18,20 +18,31 @@ const PORT = Deno.env.get("PORT") || 8000;
 
 const router = createAPIRouter(db);
 
+// Serve API routes
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-app.use(async (ctx, _next) => {
-  const PUBLIC_DIR = "./public";
-  const filePath = ctx.request.url.pathname;
-
-  if (filePath !== "/") {
+// Serve static assets from /public/assets
+app.use(async (ctx, next) => {
+  if (ctx.request.url.pathname.startsWith("/assets/")) {
+    const filePath = ctx.request.url.pathname;
     const success = await send(ctx, filePath, {
-      root: PUBLIC_DIR,
-      index: "index.html",
+      root: import.meta.dirname + "/../public",
     });
     if (success) return;
   }
+  await next();
+});
+
+// Fallback to index.html for client-side routing
+app.use(async (ctx, _next) => {
+  const PUBLIC_DIR = import.meta.dirname + "/../public";
+
+  // Only serve index.html for non-API routes that don't match static assets
+  const success = await send(ctx, "/index.html", {
+    root: PUBLIC_DIR,
+  });
+  if (success) return;
 });
 
 console.info(`🚀 Server starting at http://localhost:${PORT}`);
