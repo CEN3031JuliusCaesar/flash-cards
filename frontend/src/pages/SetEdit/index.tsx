@@ -1,22 +1,17 @@
 import "./style.css";
 import { FlashCard } from "../../components/FlashCard.tsx";
 import { useState } from "preact/hooks";
-import { useLocation } from "preact-iso";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSetById } from "../../api/sets.ts";
 import { createCard } from "../../api/cards.ts";
+import { useLocation, useRoute } from "preact-iso/router";
 
 export default function SetEditPage() {
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  // Extract set id from the path like /set/:id
-  // use window.location.pathname because the LocationHook doesn't expose pathname
-  const _g = globalThis as unknown as { location?: { pathname?: string } };
-  const pathname = _g.location?.pathname ?? "";
-  //regular expression to extract set id
-  const match = pathname.match(/\/set\/([^/]+)/);
-  const setId = match ? match[1] : "";
+  const route = useRoute();
+  const setId = route.params.id;
 
   const {
     data: set,
@@ -82,7 +77,7 @@ export default function SetEditPage() {
       <section class="new-card">
         <h3>Add New Card</h3>
         <form onSubmit={handleCreate}>
-          <div style={{ display: "flex", justifyContent: "center" }}>
+          <div class="edit-card">
             <FlashCard
               front={front}
               back={back}
@@ -91,7 +86,7 @@ export default function SetEditPage() {
               onBackChange={setBack}
             />
           </div>
-          <div style={{ textAlign: "center", marginTop: "12px" }}>
+          <div class="submit">
             <button type="submit" disabled={createCardMutation.isPending}>
               {createCardMutation.isPending ? "Creating..." : "Create Card"}
             </button>
@@ -116,7 +111,7 @@ export default function SetEditPage() {
               ))}
             </div>
           )
-          : <div>No cards yet. Add the first one below.</div>}
+          : <div>No cards yet. Add the first one above.</div>}
       </section>
     </div>
   );

@@ -1,8 +1,7 @@
 .flash-card {
-  width: var(--card-lowidth, 300px);
+  min-width: var(--card-lowidth, 300px);
   max-width: var(--card-hiwidth, 500px);
   height: var(--card-height, 200px);
-  min-width: var(--card-lowidth, 300px);
   min-height: var(--card-height, 200px);
   background: var(--color-bg-primary, #fff);
   border: var(--border-thin, 1px) solid var(--color-border, #ccc);

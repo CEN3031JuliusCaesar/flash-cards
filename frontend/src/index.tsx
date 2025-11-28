@@ -28,7 +28,6 @@ export function App() {
             <Route path="/register" component={Register} />
             <Route path="/learn/:id" component={Learn} />
             <Route path="/set/:id" component={SetEdit} />
-            <Route path="/setedit" component={SetEdit} />
             <Route path="/studysets" component={StudySets} />
             <Route default component={NotFound} />
           </Router>

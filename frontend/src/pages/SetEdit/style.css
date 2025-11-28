@@ -1,16 +1,29 @@
 .cards-list {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  /*grid-template-columns: repeat(auto-fit, minmax(var(--card-lowidth), 1fr));*/
+  grid-template-columns: 1fr;
   gap: 20px;
   margin-top: 20px;
   align-items: start;
 }
 
-.studysets-page {
+.set-edit-page {
   --card-lowidth: 300px;
-  --card-hiwidth: 500px;
+  /*--card-hiwidth: 500px;*/
+  --card-hiwidth: none;
   --card-height: 200px;
   width: 100%;
+
+  .new-card {
+    .edit-card {
+      justify-content: center;
+    }
+
+    .submit {
+      text-align: center;
+      margin-top: 12px;
+    }
+  }
 }
 
 .header {
