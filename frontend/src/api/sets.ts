@@ -1,4 +1,4 @@
-import api from "./client.ts";
+import api from "./client";
 
 export type Set = {
   id: string;

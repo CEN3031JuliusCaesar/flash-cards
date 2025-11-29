@@ -29,6 +29,14 @@ export default function DashboardPage() {
       stats: "5 active sets",
     },
     {
+      title: "Search",
+      description: "Find study sets and flashcards",
+      icon: "🔍",
+      path: "/search",
+      colorClass: "card-teal",
+      stats: "Explore",
+    },
+    {
       title: "Progress",
       description: "View your learning analytics",
       icon: "📊",

@@ -7,6 +7,7 @@
   margin-bottom: var(--spacing-lg);
   width: 100%;
   max-width: 50em;
+
   h1 {
     margin: 0 0 0.5rem 0;
     font-size: 3rem;
@@ -175,6 +176,10 @@
 
   &.card-purple {
     border-left-color: var(--color-purple);
+  }
+
+  &.card-teal {
+    border-left-color: #14b8a6;
   }
 }
 
@@ -348,6 +353,7 @@
   .welcome-header {
     padding: var(--spacing-md) var(--spacing-lg);
     max-width: 100%;
+
     h1 {
       font-size: 2.2rem;
     }
