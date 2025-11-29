@@ -27,7 +27,7 @@ export default function Login() {
   };
 
   return (
-    <main class="login-page">
+    <div class="login-page">
       <div class="login-card">
         <h1>🔥Welcome to QuizLit🔥</h1>
         <h2>Please login</h2>
@@ -77,6 +77,6 @@ export default function Login() {
           </button>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
