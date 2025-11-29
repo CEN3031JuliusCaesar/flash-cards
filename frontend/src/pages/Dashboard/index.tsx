@@ -13,7 +13,7 @@ export default function DashboardPage() {
 
   const navigationCards = [
     {
-      title: "Study Session",
+      title: "Learn",
       description: "Start learning with flashcards",
       icon: "🎯",
       path: "/learn/temp",
@@ -27,6 +27,14 @@ export default function DashboardPage() {
       path: "/studysets",
       colorClass: "card-blue",
       stats: "5 active sets",
+    },
+    {
+      title: "Search",
+      description: "Find study sets and flashcards",
+      icon: "🔍",
+      path: "/search",
+      colorClass: "card-teal",
+      stats: "Explore",
     },
     {
       title: "Progress",
