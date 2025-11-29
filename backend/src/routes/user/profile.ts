@@ -1,6 +1,11 @@
 import { Router } from "@oak/oak";
-import { Database } from "@db/sqlite";
-import { NO_SESSION_TOKEN } from "../constants.ts";
+import type { Database } from "@db/sqlite";
+import { UNAUTHORIZED } from "../constants.ts";
+import { getSession } from "../../utils/sessionkey.ts";
+import type {
+  UsersSessionView,
+  UsersSettingsView,
+} from "../../types/database.ts";
 
 export function createProfileRouter(db: Database) {
   const router = new Router();
@@ -9,7 +14,7 @@ export function createProfileRouter(db: Database) {
   router.get("/:username", (ctx) => {
     const { username } = ctx.params;
 
-    const data = db.sql`
+    const data = db.sql<UsersSettingsView>`
       SELECT pic_id, description
       FROM Users
       WHERE username = ${username};
@@ -26,25 +31,16 @@ export function createProfileRouter(db: Database) {
 
   // Update user's profile picture id and description
   router.patch("/:username", async (ctx) => {
-    const session = await ctx.cookies.get("SESSION");
-
-    if (session == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 401;
-      return;
-    }
+    const usernameFromSession = await getSession(ctx, db);
+    if (!usernameFromSession) return;
 
     const { username } = ctx.params;
 
     // Get the current user from the session
-    const sessionUser = db.sql`
+    const sessionUser = db.sql<UsersSessionView>`
       SELECT u.username, u.is_admin
       FROM Users u
-      JOIN Sessions s ON u.username = s.username
-      WHERE s.token = ${session}
-        AND s.expires > strftime('%s', 'now');
+      WHERE u.username = ${usernameFromSession};
     `;
 
     if (sessionUser.length === 0) {
@@ -57,7 +53,7 @@ export function createProfileRouter(db: Database) {
 
     // Check if the current user is the owner or an admin
     if (currentUser.username !== username && !currentUser.is_admin) {
-      ctx.response.body = { error: "UNAUTHORIZED" };
+      ctx.response.body = { error: UNAUTHORIZED };
       ctx.response.status = 403;
       return;
     }

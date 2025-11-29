@@ -1,125 +1,42 @@
 //TODO: Use Date.now() instead of strftime so expirations actually work.
-//TODO: Extract session validation to a helper function.
 import { Router } from "@oak/oak";
 import {
+  FORBIDDEN,
   INVALID_REQUEST,
-  NO_SESSION_TOKEN,
-  UNAUTHORIZED,
+  SET_TRACKED,
+  SET_UNTRACKED,
 } from "./constants.ts";
 
 import { Snowflake } from "../utils/snowflake.ts";
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { calculateAdjustedPoints } from "../utils/points.ts";
+import { getSession } from "../utils/sessionkey.ts";
+import type {
+  CardProgressWithCardInfoResult,
+  CardsBasicView,
+  ChangesResult,
+  RankedSetsResult,
+  RankedSetsWithCardsResult,
+  SetsBasicView,
+  TrackedStatusResult,
+} from "../types/database.ts";
 
-// Define types for database query results
-export type SessionResult = { username: string };
-export type SetResult = { id: string; owner: string; title: string };
-export type UserResult = { username: string };
-export type TrackedSetResult = { id: string; owner: string; title: string };
-export type CardResult = {
-  id: string;
-  set_id: string;
-  front: string;
-  back: string;
-};
-export type CardProgressResult = {
-  id: string;
-  set_id: string;
-  front: string;
-  back: string;
-  points: number;
-  last_reviewed: number;
-};
-export type SetInfoResult = { id: string; owner: string; title: string };
-export type TrackedStatusResult = { 1: number }; // SQLite returns 1 for SELECT 1
-export type ChangesResult = { affected_rows: number };
-
-// Define response types for endpoints
-export type CreateSetResponse = {
+export type SetDataResult = {
   id: string;
   owner: string;
   title: string;
+  cards: CardsBasicView[];
 };
 
-export type DeleteSetResponse = {
-  id: string;
-};
-
-export type UpdateSetResponse = {
-  id: string;
-  owner: string;
-  title: string;
-};
-
-export type TrackedSetResponse = {
-  id: string; // "tracked"
-  owner: string;
-  title: string; // "Tracked Sets"
-  cards: {
-    id: string;
-    set_id: string;
-    front: string;
-    back: string;
-  }[];
-};
-
-export type TrackedListResponse = {
-  id: string;
-  owner: string;
-  title: string;
-}[];
-
-export type OwnedSetsResponse = {
-  id: string;
-  title: string;
-}[];
-
-export type SetDetailsResponse = {
-  id: string;
-  owner: string;
-  title: string;
-  cards?: {
-    id: string;
-    set_id: string;
-    front: string;
-    back: string;
-  }[];
-};
-
-export type TrackResponse = {
-  message: string;
-};
-
-export type UntrackResponse = {
-  message: string;
-};
-
-export type TrackedStatusResponse = {
-  isTracked: boolean;
-};
-
-export type CardData = {
-  front: string | null;
-  back: string | null;
-};
-
-export type BaseMatch = {
+export type SearchResult = {
   id: string;
   title: string;
   owner: string;
   rank: number;
-};
-
-export type TitleMatch = BaseMatch;
-
-export type CardMatch = BaseMatch & {
-  card_id: string;
-  card_front: string;
-  card_back: string;
-};
-
-export type SearchResult = BaseMatch & {
-  card: CardData | null;
+  card: {
+    front: string;
+    back: string;
+  } | null;
 };
 
 export function createSetsRouter(db: Database) {
@@ -137,29 +54,8 @@ export function createSetsRouter(db: Database) {
     }
    */
   router.post("/create", async (ctx) => {
-    const session = await ctx.cookies.get("SESSION");
-
-    if (session == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 403;
-      return;
-    }
-
-    const username = db.sql<SessionResult>`
-      SELECT username FROM Sessions
-      WHERE token = ${session}
-      AND expires > strftime('%s', 'now');
-    `[0]?.username;
-
-    if (username == null) {
-      ctx.response.body = {
-        error: UNAUTHORIZED,
-      };
-      ctx.response.status = 403;
-      return;
-    }
+    const username = await getSession(ctx, db);
+    if (!username) return;
 
     const { title } = await ctx.request.body.json();
 
@@ -191,31 +87,10 @@ export function createSetsRouter(db: Database) {
     const studyParam = ctx.request.url.searchParams.get("study");
     const study = studyParam !== null ? studyParam : null;
 
-    const sessionToken = await ctx.cookies.get("SESSION");
-    if (sessionToken == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 401;
-      return;
-    }
+    const user = await getSession(ctx, db);
+    if (!user) return;
 
-    const username = db.sql<SessionResult>`
-        SELECT s.username
-        FROM Sessions s
-        WHERE s.token = ${sessionToken}
-          AND s.expires > strftime('%s', 'now');
-      `;
-
-    if (!username || username.length === 0) {
-      ctx.response.body = { error: "Invalid session" };
-      ctx.response.status = 401;
-      return;
-    }
-
-    const user = username[0].username;
-
-    const trackedSets = db.sql<TrackedSetResult>`
+    const trackedSets = db.sql<SetsBasicView>`
       SELECT s.id, s.owner, s.title
       FROM Sets s
       INNER JOIN TrackedSets ts ON s.id = ts.set_id
@@ -223,17 +98,12 @@ export function createSetsRouter(db: Database) {
     `;
 
     // Create a combined pseudo-set to hold all cards
-    const combinedSet: TrackedSetResponse = {
+    const combinedSet = {
       id: "tracked",
       owner: user,
       title: "Tracked Sets",
-      cards: [] as {
-        id: string;
-        set_id: string;
-        front: string;
-        back: string;
-      }[],
-    };
+      cards: [] as CardsBasicView[],
+    } satisfies SetDataResult;
 
     if (study !== null) {
       // Get relevant cards for all tracked sets and combine them
@@ -253,12 +123,7 @@ export function createSetsRouter(db: Database) {
       }
     } else {
       for (const set of trackedSets) {
-        const cards: {
-          id: string;
-          set_id: string;
-          front: string;
-          back: string;
-        }[] = db.sql<CardResult>`
+        const cards = db.sql<CardsBasicView>`
           SELECT c.id, c.set_id, c.front, c.back
           FROM Cards c
           WHERE c.set_id = ${set.id};
@@ -272,53 +137,32 @@ export function createSetsRouter(db: Database) {
 
   // Get list of tracked set IDs for authenticated user
   router.get("/tracked/list", async (ctx) => {
-    const sessionToken = await ctx.cookies.get("SESSION");
-    if (sessionToken == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 401;
-      return;
-    }
+    const user = await getSession(ctx, db);
+    if (!user) return;
 
-    const usernameResult = db.sql<SessionResult>`
-      SELECT s.username
-      FROM Sessions s
-      WHERE s.token = ${sessionToken}
-        AND s.expires > strftime('%s', 'now');
-    `;
-
-    if (!usernameResult || usernameResult.length === 0) {
-      ctx.response.body = { error: "Invalid session" };
-      ctx.response.status = 401;
-      return;
-    }
-
-    const user = usernameResult[0].username;
-
-    const trackedSets = db.sql<TrackedSetResult>`
+    const trackedSets = db.sql<SetsBasicView>`
       SELECT s.id, s.owner, s.title
       FROM Sets s
       INNER JOIN TrackedSets ts ON s.id = ts.set_id
       WHERE ts.username = ${user};
     `;
 
-    ctx.response.body = trackedSets satisfies TrackedListResponse;
+    ctx.response.body = trackedSets;
   });
 
   // get sets owned by a specific user (public endpoint)
   router.get("/owned/:username", (ctx) => {
     const { username } = ctx.params;
 
-    const data: { id: string; title: string }[] = db.sql<
-      { id: string; title: string }
+    const data = db.sql<
+      SetsBasicView
     >`
-      SELECT id, title
+      SELECT id, title, owner
       FROM Sets
       WHERE owner = ${username};
     `;
 
-    ctx.response.body = data satisfies OwnedSetsResponse;
+    ctx.response.body = data;
   });
 
   // text search for sets by title and content
@@ -332,7 +176,7 @@ export function createSetsRouter(db: Database) {
       return;
     }
 
-    const titleMatches: TitleMatch[] = db.sql<TitleMatch>`
+    const titleMatches = db.sql<RankedSetsResult>`
       SELECT
         s.id,
         s.title,
@@ -345,7 +189,7 @@ export function createSetsRouter(db: Database) {
       LIMIT 20
     `;
 
-    const cardMatches: CardMatch[] = db.sql<CardMatch>`
+    const cardMatches = db.sql<RankedSetsWithCardsResult>`
       SELECT DISTINCT
         s.id,
         s.title,
@@ -371,7 +215,7 @@ export function createSetsRouter(db: Database) {
     };
 
     for (const r of [...titleMatches, ...cardMatches]) {
-      const row = r as (CardMatch | TitleMatch);
+      const row = r as (RankedSetsResult | RankedSetsWithCardsResult);
       const current = acc.map.get(row.id);
 
       const candidate: SearchResult = "card_id" in row
@@ -424,19 +268,7 @@ export function createSetsRouter(db: Database) {
     const studyParam = ctx.request.url.searchParams.get("study");
     const study = studyParam !== null ? studyParam : null;
 
-    let sessionToken = null;
-    if (study !== null) {
-      sessionToken = await ctx.cookies.get("SESSION");
-      if (sessionToken == null) {
-        ctx.response.body = {
-          error: NO_SESSION_TOKEN,
-        };
-        ctx.response.status = 401;
-        return;
-      }
-    }
-
-    const setInfo = db.sql<SetInfoResult>`
+    const setInfo = db.sql<SetsBasicView>`
       SELECT s.id, s.owner, s.title
       FROM Sets s
       WHERE s.id = ${setId};
@@ -448,31 +280,18 @@ export function createSetsRouter(db: Database) {
       return;
     }
 
-    const response: SetDetailsResponse = {
+    const response: SetsBasicView & { cards: CardsBasicView[] } = {
       id: setInfo[0].id,
       owner: setInfo[0].owner,
       title: setInfo[0].title,
+      cards: [],
     };
 
-    let cards: { id: string; set_id: string; front: string; back: string }[] =
-      [];
+    let cards: CardsBasicView[] = [];
 
     if (study !== null) {
-      // only send cards that need studying
-      const username = db.sql<SessionResult>`
-        SELECT s.username
-        FROM Sessions s
-        WHERE s.token = ${sessionToken}
-          AND s.expires > strftime('%s', 'now');
-      `;
-
-      if (!username || username.length === 0) {
-        ctx.response.body = { error: "Invalid session" };
-        ctx.response.status = 401;
-        return;
-      }
-
-      const user = username[0].username;
+      const user = await getSession(ctx, db);
+      if (!user) return;
 
       let pointsOffset = 0;
       if (study !== "true") {
@@ -486,7 +305,7 @@ export function createSetsRouter(db: Database) {
       // making them due for review more frequently
       cards = getRelevantCards(db, user, setId, -pointsOffset);
     } else {
-      cards = db.sql<CardResult>`
+      cards = db.sql<CardsBasicView>`
         SELECT c.id, c.set_id, c.front, c.back
         FROM Cards c
         WHERE c.set_id = ${setId};
@@ -501,32 +320,10 @@ export function createSetsRouter(db: Database) {
   // track a set for a user
   router.post("/:setId/track", async (ctx) => {
     const { setId } = ctx.params;
-    const sessionToken = await ctx.cookies.get("SESSION");
+    const user = await getSession(ctx, db);
+    if (!user) return;
 
-    if (sessionToken == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 401;
-      return;
-    }
-
-    const usernameResult = db.sql<SessionResult>`
-      SELECT s.username
-      FROM Sessions s
-      WHERE s.token = ${sessionToken}
-        AND s.expires > strftime('%s', 'now');
-    `;
-
-    if (!usernameResult || usernameResult.length === 0) {
-      ctx.response.body = { error: "Invalid session" };
-      ctx.response.status = 401;
-      return;
-    }
-
-    const user = usernameResult[0].username;
-
-    const setInfo = db.sql<SetInfoResult>`
+    const setInfo = db.sql<SetsBasicView>`
       SELECT id
       FROM Sets
       WHERE id = ${setId};
@@ -546,8 +343,8 @@ export function createSetsRouter(db: Database) {
 
       ctx.response.status = 200;
       ctx.response.body = {
-        message: "Set successfully tracked",
-      } satisfies TrackResponse;
+        message: SET_TRACKED,
+      };
     } catch (error: unknown) {
       // double-track is fine
       if (
@@ -555,7 +352,7 @@ export function createSetsRouter(db: Database) {
         error.message.includes("UNIQUE constraint failed")
       ) {
         ctx.response.status = 200;
-        ctx.response.body = { message: "Set already tracked" };
+        ctx.response.body = { message: SET_TRACKED };
       } else {
         ctx.response.status = 500;
         ctx.response.body = { error: "Failed to track set" };
@@ -566,32 +363,10 @@ export function createSetsRouter(db: Database) {
   // untrack set
   router.delete("/:setId/untrack", async (ctx) => {
     const { setId } = ctx.params;
-    const sessionToken = await ctx.cookies.get("SESSION");
+    const user = await getSession(ctx, db);
+    if (!user) return;
 
-    if (sessionToken == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 401;
-      return;
-    }
-
-    const usernameResult = db.sql<{ username: string }>`
-      SELECT s.username
-      FROM Sessions s
-      WHERE s.token = ${sessionToken}
-        AND s.expires > strftime('%s', 'now');
-    `;
-
-    if (!usernameResult || usernameResult.length === 0) {
-      ctx.response.body = { error: "Invalid session" };
-      ctx.response.status = 401;
-      return;
-    }
-
-    const user = usernameResult[0].username;
-
-    const setInfo = db.sql<SetInfoResult>`
+    const setInfo = db.sql<SetsBasicView>`
       SELECT id
       FROM Sets
       WHERE id = ${setId};
@@ -619,44 +394,22 @@ export function createSetsRouter(db: Database) {
     ctx.response.status = 200;
     if (affectedRows > 0) {
       ctx.response.body = {
-        message: "Set successfully untracked",
-      } satisfies UntrackResponse;
+        message: SET_UNTRACKED,
+      };
     } else {
       ctx.response.body = {
-        message: "Set was not being tracked",
-      } satisfies UntrackResponse;
+        message: SET_UNTRACKED,
+      };
     }
   });
 
   // get tracked status
   router.get("/:setId/tracked", async (ctx) => {
     const { setId } = ctx.params;
-    const sessionToken = await ctx.cookies.get("SESSION");
+    const user = await getSession(ctx, db);
+    if (!user) return;
 
-    if (sessionToken == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 401;
-      return;
-    }
-
-    const usernameResult = db.sql<SessionResult>`
-      SELECT s.username
-      FROM Sessions s
-      WHERE s.token = ${sessionToken}
-        AND s.expires > strftime('%s', 'now');
-    `;
-
-    if (!usernameResult || usernameResult.length === 0) {
-      ctx.response.body = { error: "Invalid session" };
-      ctx.response.status = 401;
-      return;
-    }
-
-    const user = usernameResult[0].username;
-
-    const setInfo = db.sql<SetInfoResult>`
+    const setInfo = db.sql<SetsBasicView>`
       SELECT id
       FROM Sets
       WHERE id = ${setId};
@@ -675,37 +428,15 @@ export function createSetsRouter(db: Database) {
     `;
 
     ctx.response.body = {
-      isTracked: trackedResult.length > 0,
-    } satisfies TrackedStatusResponse;
+      isTracked: trackedResult.length > 0 ? SET_TRACKED : SET_UNTRACKED,
+    };
   });
 
   router.delete("/:setId", async (ctx) => {
     const { setId } = ctx.params;
 
-    const session = await ctx.cookies.get("SESSION");
-
-    if (session == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 403;
-      return;
-    }
-
-    const username = db.sql`
-      SELECT username FROM Sessions
-      WHERE token = ${session}
-      AND expires > strftime('%s', 'now');
-    `[0]?.username;
-
-    // Must be set owner to delete.
-    if (username == undefined) {
-      ctx.response.body = {
-        error: UNAUTHORIZED,
-      };
-      ctx.response.status = 403;
-      return;
-    }
+    const username = await getSession(ctx, db);
+    if (!username) return;
 
     // Validate setId is a snowflake.
     if (!Snowflake.isSnowflake(setId!)) {
@@ -716,17 +447,22 @@ export function createSetsRouter(db: Database) {
       return;
     }
 
-    const set = db.sql`
-      SELECT * FROM Sets
+    const set = db.sql<SetsBasicView>`
+      SELECT id, owner, title
+      FROM Sets
       WHERE id = ${setId}
       AND owner = ${username};
     `;
 
     // Validate that the set exists & is owned.
     if (set.length === 0) {
-      if (db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
+      if (
+        db.sql<
+          SetsBasicView
+        >`SELECT id, owner, title FROM Sets WHERE id = ${setId};`.length > 0
+      ) {
         ctx.response.body = {
-          error: UNAUTHORIZED,
+          error: FORBIDDEN,
         };
         ctx.response.status = 403;
       } else {
@@ -755,30 +491,8 @@ export function createSetsRouter(db: Database) {
   router.patch("/:setId", async (ctx) => {
     const { setId } = ctx.params;
 
-    const session = await ctx.cookies.get("SESSION");
-
-    // Session authorization.
-    if (session == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 403;
-      return;
-    }
-
-    const username = db.sql`
-      SELECT username FROM Sessions
-      WHERE token = ${session}
-      AND expires > strftime('%s', 'now');
-    `[0]?.username;
-
-    if (username == undefined) {
-      ctx.response.body = {
-        error: UNAUTHORIZED,
-      };
-      ctx.response.status = 403;
-      return;
-    }
+    const username = await getSession(ctx, db);
+    if (!username) return;
 
     // Validate setId is a snowflake.
     if (!Snowflake.isSnowflake(setId!)) {
@@ -789,17 +503,22 @@ export function createSetsRouter(db: Database) {
       return;
     }
 
-    const set = db.sql`
-      SELECT * FROM Sets
+    const set = db.sql<SetsBasicView>`
+      SELECT id, owner, title
+      FROM Sets
       WHERE id = ${setId}
       AND Owner = ${username};
     `;
 
     // Validate that the set exists.
     if (set.length === 0) {
-      if (db.sql`SELECT * FROM Sets WHERE id = ${setId};`.length > 0) {
+      if (
+        db.sql<
+          SetsBasicView
+        >`SELECT id, owner, title FROM Sets WHERE id = ${setId};`.length > 0
+      ) {
         ctx.response.body = {
-          error: UNAUTHORIZED,
+          error: FORBIDDEN,
         };
         ctx.response.status = 403;
       } else {
@@ -849,7 +568,7 @@ function getRelevantCards(
   setId: string,
   pointsOffset: number,
 ): { id: string; set_id: string; front: string; back: string }[] {
-  const cards = db.sql<CardProgressResult>`
+  const cards = db.sql<CardProgressWithCardInfoResult>`
     SELECT
       c.id,
       c.set_id,
@@ -882,7 +601,7 @@ function getRelevantCards(
     points += pointsOffset;
 
     // add card if it's in reviewable state
-    if (daysSinceLastReview > Math.pow(2, points)) {
+    if (daysSinceLastReview >= Math.pow(2, points)) {
       relevantCards.push({
         id: card.id,
         set_id: card.set_id,

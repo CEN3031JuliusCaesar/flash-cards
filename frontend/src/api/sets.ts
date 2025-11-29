@@ -39,14 +39,8 @@ export const updateSet = async (
   return response.data;
 };
 
-export const getTrackedSets = async (
-  study?: string,
-): Promise<Set> => {
-  let url = "/api/sets/tracked";
-  if (study !== undefined) {
-    url += `?study=${study}`;
-  }
-  const response = await api.get(url);
+export const getTrackedSets = async (): Promise<OwnedSet[]> => {
+  const response = await api.get("/api/sets/tracked/list");
   return response.data;
 };
 
@@ -76,7 +70,45 @@ export const untrackSet = async (
 
 export const getSetTrackedStatus = async (
   setId: string,
-): Promise<{ isTracked: boolean }> => {
+): Promise<{ isTracked: "SET_UNTRACKED" | "SET_TRACKED" }> => {
   const response = await api.get(`/api/sets/${setId}/tracked`);
+  return response.data;
+};
+
+export type OwnedSet = {
+  id: string;
+  title: string;
+  owner: string;
+};
+
+export const getSetsByOwner = async (
+  username: string,
+): Promise<OwnedSet[]> => {
+  const response = await api.get(`/api/sets/owned/${username}`);
+  return response.data;
+};
+
+export type CardData = {
+  front: string | null;
+  back: string | null;
+};
+
+export type SearchResult = {
+  id: string;
+  title: string;
+  owner: string;
+  rank: number;
+  card: CardData | null;
+};
+
+export const searchSets = async (
+  query: string,
+): Promise<SearchResult[]> => {
+  if (!query) {
+    throw new Error("Query parameter is required for search");
+  }
+  const response = await api.get(
+    `/api/sets/search?q=${encodeURIComponent(query)}`,
+  );
   return response.data;
 };

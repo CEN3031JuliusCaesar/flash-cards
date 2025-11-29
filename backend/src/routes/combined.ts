@@ -1,4 +1,4 @@
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { createCardRouter } from "./cards.ts";
 import { createSetsRouter } from "./sets.ts";
 import { Router } from "@oak/oak";

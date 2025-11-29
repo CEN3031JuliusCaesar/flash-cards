@@ -24,7 +24,7 @@ export default function DashboardPage() {
       title: "Study Sets",
       description: "Manage your flashcard collections",
       icon: "📚",
-      path: "/sets",
+      path: "/studysets",
       colorClass: "card-blue",
       stats: "5 active sets",
     },
@@ -75,7 +75,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <main class="dashboard">
+    <>
       {/* Welcome Section at the top */}
       <div class="welcome-header">
         <h1>Welcome back! 👋</h1>
@@ -163,6 +163,6 @@ export default function DashboardPage() {
           </section>
         </div>
       </div>
-    </main>
+    </>
   );
 }

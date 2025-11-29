@@ -1,4 +1,4 @@
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { genSalt, pbkdf2, toHex } from "./hashing.ts";
 import { Snowflake } from "./snowflake.ts";
 import { generateSessionToken } from "./sessionkey.ts";
@@ -203,5 +203,18 @@ export async function createCardProgress(
     card,
     points,
     studyTime,
+  };
+}
+
+export function mockDateNow() {
+  const oldNow = Date.now;
+
+  const now = Date.now();
+  Date.now = () => now;
+
+  return {
+    [Symbol.dispose]() {
+      Date.now = oldNow;
+    },
   };
 }

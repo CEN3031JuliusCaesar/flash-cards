@@ -1,6 +1,7 @@
 import { Router } from "@oak/oak";
-import { NO_SESSION_TOKEN } from "../constants.ts";
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
+import { getSession } from "../../utils/sessionkey.ts";
+import type { StreakResult } from "../../types/database.ts";
 
 // helper function to update user streak - updates the streak timestamps
 export function updateStreakForUser(db: Database, username: string) {
@@ -30,16 +31,10 @@ export function createStreakRouter(db: Database) {
 
   // get user streak - calculates the current streak based on date difference
   router.get("/", async (ctx) => {
-    const session = await ctx.cookies.get("SESSION");
-    if (session == null) {
-      ctx.response.body = {
-        error: NO_SESSION_TOKEN,
-      };
-      ctx.response.status = 401;
-      return;
-    }
+    const username = await getSession(ctx, db);
+    if (!username) return;
 
-    const data = db.sql`
+    const data = db.sql<StreakResult>`
       SELECT
         CASE
           -- if last updated is more than 36 hours ago, streak is 0
@@ -53,9 +48,7 @@ export function createStreakRouter(db: Database) {
           ELSE 0
         END AS current_streak
       FROM Users u
-      JOIN Sessions s ON u.username = s.username
-      WHERE s.token = ${session}
-        AND s.expires > strftime('%s', 'now');
+      WHERE u.username = ${username};
     `;
 
     ctx.response.body = data;

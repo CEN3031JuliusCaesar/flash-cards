@@ -1,0 +1,23 @@
+/* cards are 320px x 200px */
+.studysets-page {
+  /*--card-width: 320px;*/
+  --card-lowidth: 300px;
+  --card-hiwidth: 500px;
+  --card-height: 200px;
+  width: 100%;
+}
+
+.header {
+  h3 {
+    text-align: left;
+    color: var(--color-text-tertiary);
+  }
+}
+
+.set-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--card-lowidth), 1fr));
+  justify-content: start;
+  margin-bottom: 40px;
+  gap: 20px;
+}

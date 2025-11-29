@@ -1,7 +1,9 @@
 import { Router } from "@oak/oak";
-import { Database } from "@db/sqlite";
+import type { Database } from "@db/sqlite";
 import { generateSessionToken } from "../../utils/sessionkey.ts";
 import { genSalt, pbkdf2, toHex } from "../../utils/hashing.ts";
+import { INVALID_CREDENTIALS } from "../constants.ts";
+import type { UsersSaltView, UsersUsernameView } from "../../types/database.ts";
 
 export function createAuthRouter(db: Database) {
   const router = new Router();
@@ -31,13 +33,14 @@ export function createAuthRouter(db: Database) {
     }
 
     const salt = db
-      .sql`SELECT salt FROM Users WHERE username = ${body.username};`[0]
-      ?.salt;
+      .sql<UsersSaltView>`
+        SELECT salt FROM Users WHERE username = ${body.username};
+      `[0]?.salt;
 
     if (!salt) {
       // Get their salt, and check if the user exists.
-      ctx.response.body = { error: "INVALID_CREDENTIALS" };
-      ctx.response.status = 403;
+      ctx.response.body = { error: INVALID_CREDENTIALS };
+      ctx.response.status = 401;
       return;
     }
 
@@ -46,23 +49,35 @@ export function createAuthRouter(db: Database) {
     );
 
     const user = (
-      db.sql`SELECT username FROM Users WHERE username = ${body.username} AND hash = ${hashedPassword};`
+      db.sql<UsersUsernameView>`
+        SELECT username FROM Users WHERE
+          username = ${body.username} AND
+          hash = ${hashedPassword};
+      `
     )[
       0
     ]
       ?.username;
     if (!user) {
       // Check if the password is correct.
-      ctx.response.body = { error: "INVALID_CREDENTIALS" };
-      ctx.response.status = 403;
+      ctx.response.body = { error: INVALID_CREDENTIALS };
+      ctx.response.status = 401;
       return;
     }
 
     const newSessionToken = generateSessionToken();
 
-    db.sql`INSERT INTO Sessions (username, token) VALUES (${user}, ${newSessionToken});`;
+    db.sql`INSERT INTO Sessions (username, token, expires) VALUES (${user}, ${newSessionToken}, ${
+      Date.now() / 1000 + 48 * 60 * 60
+    });`;
+
     ctx.cookies.set("SESSION", newSessionToken, {
       httpOnly: true,
+      maxAge: 48 * 60 * 60,
+      path: "/",
+    });
+    ctx.cookies.set("USERNAME", user, {
+      httpOnly: false,
       maxAge: 48 * 60 * 60,
       path: "/",
     });
@@ -108,8 +123,9 @@ export function createAuthRouter(db: Database) {
     );
 
     if (
-      db.sql`SELECT username FROM Users WHERE username = ${body.username};`[0]
-        ?.username
+      db.sql<UsersUsernameView>`
+        SELECT username FROM Users WHERE username = ${body.username};
+      `[0]?.username
     ) {
       ctx.response.body = { error: "USERNAME_TAKEN" };
       ctx.response.status = 409;
