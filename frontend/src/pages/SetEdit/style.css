@@ -33,6 +33,39 @@
   }
 }
 
+.title-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.title-section h2 {
+  margin: 0;
+}
+
+.edit-title {
+  margin-bottom: 24px;
+}
+
+.edit-title form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.edit-title input {
+  padding: 8px 12px;
+  font-size: 1.5rem;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.edit-title .submit {
+  text-align: left;
+}
+
 .set-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--card-lowidth), 1fr));

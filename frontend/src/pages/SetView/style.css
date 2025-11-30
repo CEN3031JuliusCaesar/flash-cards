@@ -1,0 +1,29 @@
+.cards-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  margin-top: 20px;
+  align-items: start;
+}
+
+.set-view-page {
+  --card-lowidth: 300px;
+  --card-hiwidth: none;
+  --card-height: 200px;
+  width: 100%;
+}
+
+.header {
+  h3 {
+    text-align: left;
+    color: var(--color-text-tertiary);
+  }
+}
+
+.set-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--card-lowidth), 1fr));
+  justify-content: start;
+  margin-bottom: 40px;
+  gap: 20px;
+}

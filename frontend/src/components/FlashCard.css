@@ -14,6 +14,17 @@
   justify-content: center;
   align-items: flex-start;
   transition: background 0.2s ease;
+  position: relative;
+}
+
+.flash-card-buttons {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
 }
 
 .flash-card-content {
@@ -21,6 +32,27 @@
   flex-direction: row;
   width: 100%;
   height: 100%;
+}
+
+/* label spacing for "Front:" and "Back:" added because it got scuffed from the buttons, might have a better solution */
+.flash-card-labels {
+  display: flex;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.flash-card-label {
+  flex: 1;
+}
+
+.flash-card-label.front-label {
+  padding-right: 16px;
+  text-align: left;
+}
+
+.flash-card-label.back-label {
+  padding-left: 16px;
+  text-align: left;
 }
 
 .flash-card-front {
