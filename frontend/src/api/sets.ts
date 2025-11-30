@@ -27,8 +27,7 @@ export const deleteSet = async (setId: string): Promise<{ id: string }> => {
 };
 
 export type UpdateSetParams = {
-  newOwner?: string;
-  newTitle?: string;
+  title?: string;
 };
 
 export const updateSet = async (

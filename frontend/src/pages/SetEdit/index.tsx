@@ -3,8 +3,8 @@ import { FlashCard } from "../../components/FlashCard.tsx";
 import { EditButton } from "../../components/EditButton.tsx";
 import { useState } from "preact/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getSetById } from "../../api/sets.ts";
-import { createCard } from "../../api/cards.ts";
+import { getSetById, updateSet } from "../../api/sets.ts";
+import { createCard, deleteCard, updateCard } from "../../api/cards.ts";
 import { useLocation, useRoute } from "preact-iso/router";
 
 export default function SetEditPage() {
@@ -44,25 +44,58 @@ export default function SetEditPage() {
     setBack(card.back);
   }
 
+  const updateCardMutation = useMutation({
+    mutationFn: (
+      { cardId, front, back }: { cardId: string; front: string; back: string },
+    ) => updateCard(cardId, { front, back }),
+    onSuccess: () => {
+      setEditingCard(null);
+      setFront("");
+      setBack("");
+      // Refresh the set so updated card appears
+      queryClient.invalidateQueries({ queryKey: ["set", setId] });
+    },
+  });
+
   function handleEditFinish(e: Event) {
     e.preventDefault();
     if (!front.trim() || !back.trim()) {
       alert("Both front and back must be provided");
       return;
     }
-    // TODO: input api call (make sure it only updates API if both front and back have text)
-    setEditingCard(null);
-    setFront("");
-    setBack("");
-    // Refresh the set so new text appears (should this be onSuccess: () => ?)
-    queryClient.invalidateQueries({ queryKey: ["set", setId] });
+
+    if (editingCard) {
+      updateCardMutation.mutate({
+        cardId: editingCard.id,
+        front: front.trim(),
+        back: back.trim(),
+      });
+    }
   }
 
+  const deleteCardMutation = useMutation({
+    mutationFn: (cardId: string) => deleteCard(cardId),
+    onSuccess: () => {
+      // Refresh the set so card is removed from the set
+      queryClient.invalidateQueries({ queryKey: ["set", setId] });
+    },
+  });
+
   function handleDeleteCard(cardId: string) {
-    // TODO: input api call
-    // Refresh the set so card is removed from the set* (should this be onSuccess: () => ?)
-    queryClient.invalidateQueries({ queryKey: ["set", setId] });
+    if (confirm("Are you sure you want to delete this card?")) {
+      deleteCardMutation.mutate(cardId);
+    }
   }
+
+  const updateSetTitleMutation = useMutation({
+    mutationFn: ({ setId, title }: { setId: string; title: string }) =>
+      updateSet(setId, { title }),
+    onSuccess: () => {
+      setEditingTitle(false);
+      // Refresh the set so new name appears
+      queryClient.invalidateQueries({ queryKey: ["set", setId] });
+    },
+  });
 
   function handleEditTitle() {
     setEditingTitle(true);
@@ -75,10 +108,11 @@ export default function SetEditPage() {
       alert("Title cannot be empty");
       return;
     }
-    // TODO: input api call
-    setEditingTitle(false);
-    // Refresh the set so new name appears (this one might need to be handeled differently?)
-    queryClient.invalidateQueries({ queryKey: ["set", setId] });
+
+    updateSetTitleMutation.mutate({
+      setId,
+      title: newTitle.trim(),
+    });
   }
   // end of editing states
 
@@ -167,9 +201,15 @@ export default function SetEditPage() {
             />
           </div>
           <div class="submit">
-            <button type="submit" disabled={createCardMutation.isPending}>
+            <button
+              type="submit"
+              disabled={createCardMutation.isPending ||
+                updateCardMutation.isPending}
+            >
               {editingCard
-                ? "Finish Editing"
+                ? updateCardMutation.isPending
+                  ? "Updating..."
+                  : "Finish Editing"
                 : createCardMutation.isPending
                 ? "Creating..."
                 : "Create Card"}
