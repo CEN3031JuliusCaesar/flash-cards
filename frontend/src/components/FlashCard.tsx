@@ -13,17 +13,26 @@ export interface FlashCardProps {
 }
 
 export function FlashCard(
-  { front, back, editable = false, onFrontChange, onBackChange, onEdit, onDelete }:
-    FlashCardProps,
+  {
+    front,
+    back,
+    editable = false,
+    onFrontChange,
+    onBackChange,
+    onEdit,
+    onDelete,
+  }: FlashCardProps,
 ) {
   return (
     <div className="flash-card">
-      {onEdit || onDelete ? (
-        <div className="flash-card-buttons">
-          {onEdit && <EditButton onClick={onEdit} />}
-          {onDelete && <DeleteButton onClick={onDelete} />}
-        </div>
-      ) : null}
+      {onEdit || onDelete
+        ? (
+          <div className="flash-card-buttons">
+            {onEdit && <EditButton onClick={onEdit} />}
+            {onDelete && <DeleteButton onClick={onDelete} />}
+          </div>
+        )
+        : null}
       <div className="flash-card-labels">
         <div className="flash-card-label front-label">
           <span style={{ fontWeight: "bold" }}>Front:</span>

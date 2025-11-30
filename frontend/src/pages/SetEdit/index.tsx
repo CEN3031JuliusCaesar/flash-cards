@@ -33,53 +33,54 @@ export default function SetEditPage() {
   const [back, setBack] = useState("");
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState(set?.title ?? "");
-    // Editing states
-    const [editingCard, setEditingCard] = useState<{ id: string; front: string; back: string } | null>(null);
+  // Editing states
+  const [editingCard, setEditingCard] = useState<
+    { id: string; front: string; back: string } | null
+  >(null);
 
-    function handleEditCard(card: { id: string; front: string; back: string }) {
-      setEditingCard(card);
-      setFront(card.front);
-      setBack(card.back);
-    }
+  function handleEditCard(card: { id: string; front: string; back: string }) {
+    setEditingCard(card);
+    setFront(card.front);
+    setBack(card.back);
+  }
 
-    function handleEditFinish(e: Event) {
-      e.preventDefault();
+  function handleEditFinish(e: Event) {
+    e.preventDefault();
     if (!front.trim() || !back.trim()) {
       alert("Both front and back must be provided");
       return;
     }
-      // TODO: input api call (make sure it only updates API if both front and back have text)
-      setEditingCard(null);
-      setFront("");
-      setBack("");
-      // Refresh the set so new text appears (should this be onSuccess: () => ?)
-      queryClient.invalidateQueries({ queryKey: ["set", setId] });
-    }
+    // TODO: input api call (make sure it only updates API if both front and back have text)
+    setEditingCard(null);
+    setFront("");
+    setBack("");
+    // Refresh the set so new text appears (should this be onSuccess: () => ?)
+    queryClient.invalidateQueries({ queryKey: ["set", setId] });
+  }
 
-    function handleDeleteCard(cardId: string) {
-      // TODO: input api call
-      // Refresh the set so card is removed from the set* (should this be onSuccess: () => ?)
-      queryClient.invalidateQueries({ queryKey: ["set", setId] });
-    }
+  function handleDeleteCard(cardId: string) {
+    // TODO: input api call
+    // Refresh the set so card is removed from the set* (should this be onSuccess: () => ?)
+    queryClient.invalidateQueries({ queryKey: ["set", setId] });
+  }
 
-    function handleEditTitle() {
-      setEditingTitle(true);
-      setNewTitle(set?.title ?? "");
-    }
+  function handleEditTitle() {
+    setEditingTitle(true);
+    setNewTitle(set?.title ?? "");
+  }
 
-    function handleEditTitleFinish(e: Event) {
-      e.preventDefault();
-      if (!newTitle.trim()) {
-        alert("Title cannot be empty");
-        return;
-      }
-      // TODO: input api call
-      setEditingTitle(false);
-      // Refresh the set so new name appears (this one might need to be handeled differently?)
-      queryClient.invalidateQueries({ queryKey: ["set", setId] });
+  function handleEditTitleFinish(e: Event) {
+    e.preventDefault();
+    if (!newTitle.trim()) {
+      alert("Title cannot be empty");
+      return;
     }
-// end of editing states
-  
+    // TODO: input api call
+    setEditingTitle(false);
+    // Refresh the set so new name appears (this one might need to be handeled differently?)
+    queryClient.invalidateQueries({ queryKey: ["set", setId] });
+  }
+  // end of editing states
 
   const createCardMutation = useMutation({
     mutationFn: (params: { set_id: string; front: string; back: string }) =>
@@ -128,27 +129,30 @@ export default function SetEditPage() {
         <h3 onClick={() => location.route("/studysets")}>🡄 Back to Sets</h3>
       </div>
 
-      {editingTitle ? (
-        <section class="edit-title">
-          <form onSubmit={handleEditTitleFinish}>
-            <input
-              type="text"
-              value={newTitle}
-              onInput={(e: Event) => setNewTitle((e.target as HTMLInputElement).value)}
-              placeholder="Enter set title..."
-              autoFocus
-            />
-            <div class="submit">
-              <button type="submit">Save Title</button>
-            </div>
-          </form>
-        </section>
-      ) : (
-        <div class="title-section">
-          <h2>{set?.title ?? "Study Set"}</h2>
-          <EditButton onClick={handleEditTitle} />
-        </div>
-      )}
+      {editingTitle
+        ? (
+          <section class="edit-title">
+            <form onSubmit={handleEditTitleFinish}>
+              <input
+                type="text"
+                value={newTitle}
+                onInput={(e: Event) =>
+                  setNewTitle((e.target as HTMLInputElement).value)}
+                placeholder="Enter set title..."
+                autoFocus
+              />
+              <div class="submit">
+                <button type="submit">Save Title</button>
+              </div>
+            </form>
+          </section>
+        )
+        : (
+          <div class="title-section">
+            <h2>{set?.title ?? "Study Set"}</h2>
+            <EditButton onClick={handleEditTitle} />
+          </div>
+        )}
 
       <section class="new-card">
         <h3>{editingCard ? "Now Editing Card" : "Add New Card"}</h3>
@@ -168,8 +172,8 @@ export default function SetEditPage() {
               {editingCard
                 ? "Finish Editing"
                 : createCardMutation.isPending
-                  ? "Creating..."
-                  : "Create Card"}
+                ? "Creating..."
+                : "Create Card"}
             </button>
           </div>
         </form>
@@ -180,7 +184,14 @@ export default function SetEditPage() {
         {set?.cards && set.cards.length > 0
           ? (
             <div class="cards-list">
-              {set.cards.map((card: { id: string; set_id: string; front: string; back: string }) => (
+              {set.cards.map((
+                card: {
+                  id: string;
+                  set_id: string;
+                  front: string;
+                  back: string;
+                },
+              ) => (
                 <FlashCard
                   key={card.id}
                   front={card.front}

@@ -1,4 +1,3 @@
-
 import "./style.css";
 import { FlashCard } from "../../components/FlashCard.tsx";
 import { useQuery } from "@tanstack/react-query";
@@ -56,7 +55,14 @@ export default function SetViewPage() {
         {set?.cards && set.cards.length > 0
           ? (
             <div class="cards-list">
-              {set.cards.map((card: { id: string; set_id: string; front: string; back: string }) => (
+              {set.cards.map((
+                card: {
+                  id: string;
+                  set_id: string;
+                  front: string;
+                  back: string;
+                },
+              ) => (
                 <FlashCard
                   key={card.id}
                   front={card.front}
