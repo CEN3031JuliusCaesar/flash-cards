@@ -22,13 +22,17 @@ export function createProfileRouter(db: Database) {
       WHERE u.username = ${usernameFromSession};
     `;
 
+    // This shouldn't ever occur, but lets be pedantic
     if (sessionUser.length === 0) {
       ctx.response.body = { error: "INVALID_SESSION" };
       ctx.response.status = 401;
       return;
     }
 
-    ctx.response.body = sessionUser[0];
+    ctx.response.body = {
+      username: sessionUser[0].username,
+      is_admin: Boolean(sessionUser[0].is_admin),
+    };
   });
 
   // Get user's profile picture id and description by username

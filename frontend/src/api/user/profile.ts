@@ -10,6 +10,16 @@ export type UpdateProfileParams = {
   description?: string;
 };
 
+export type CurrentUserInfo = {
+  username: string;
+  is_admin: boolean;
+};
+
+export const getCurrentUser = async (): Promise<CurrentUserInfo> => {
+  const response = await api.get(`/api/user/profile/me`);
+  return response.data;
+};
+
 export const getUserProfile = async (
   username: string,
 ): Promise<UserProfile> => {

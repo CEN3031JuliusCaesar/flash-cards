@@ -455,7 +455,7 @@ Deno.test({
     assertEquals(ctx.response.status, 200);
     assertEquals(ctx.response.body, {
       username: user.username,
-      is_admin: +user.is_admin,
+      is_admin: user.is_admin,
     });
   },
 });
@@ -492,7 +492,7 @@ Deno.test({
     assertEquals(ctx.response.status, 200);
     assertEquals(ctx.response.body, {
       username: adminUser.username,
-      is_admin: +adminUser.is_admin,
+      is_admin: adminUser.is_admin,
     });
   },
 });
