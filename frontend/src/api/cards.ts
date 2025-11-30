@@ -49,10 +49,30 @@ export const createCard = async (
   return response.data;
 };
 
+export type UpdateCardParams = {
+  front?: string;
+  back?: string;
+};
+
+export const updateCard = async (
+  cardId: string,
+  params: UpdateCardParams,
+): Promise<Card> => {
+  const response = await api.patch(`/api/cards/${cardId}`, params);
+  return response.data;
+};
+
 export const studyCard = async (
   cardId: string,
   params: StudyCardParams,
 ): Promise<StudyCardResponse> => {
   const response = await api.post(`/api/cards/${cardId}/study`, params);
+  return response.data;
+};
+
+export const deleteCard = async (
+  cardId: string,
+): Promise<{ id: string; message: string }> => {
+  const response = await api.delete(`/api/cards/${cardId}`);
   return response.data;
 };
