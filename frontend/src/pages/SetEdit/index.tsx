@@ -162,7 +162,6 @@ export default function SetEditPage() {
               front={front}
               back={back}
               editable
-              reserveSpaceForButtons
               onFrontChange={setFront}
               onBackChange={setBack}
             />
