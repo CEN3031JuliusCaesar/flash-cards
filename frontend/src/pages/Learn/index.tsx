@@ -12,8 +12,6 @@ const FlashCardPage = () => {
 
   const id = route.params.id;
 
-  const [studyCards, setStudyCards] = useState<Set | null>(null);
-
   const {
     data: studySet = null,
     isLoading: studySetLoading,
@@ -39,16 +37,9 @@ const FlashCardPage = () => {
     },
   });
 
-  useEffect(() => {
-    if (studyCards == null && studySet != null) {
-      setStudyCards(studySet);
-    }
-  }, [studySet, studySetLoading, studySetError]);
-
-  const [currentCardId, setCurrentCardId] = useState(0);
   const [flipped, setFlipped] = useState(false);
 
-  if (studyCards == null) {
+  if (studySet == null) {
     return (
       <>
         <div class="header">
@@ -60,7 +51,7 @@ const FlashCardPage = () => {
       </>
     );
   } else if (
-    studyCards.cards == null || studyCards.cards.length <= currentCardId
+    studySet.cards == null || studySet.cards.length == 0
   ) {
     return (
       <>
@@ -75,14 +66,13 @@ const FlashCardPage = () => {
   }
   // Derived State
   // actual card from index
-  const currentCard = studyCards.cards[currentCardId];
+  const currentCard = studySet.cards[0];
 
   const handleFlagThrow = (correct: boolean) => {
     updateCardMutation.mutate({
       id: currentCard.id,
       result: correct ? "correct" : "incorrect",
     });
-    setCurrentCardId(currentCardId + 1);
   };
 
   return (
