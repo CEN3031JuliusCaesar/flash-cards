@@ -14,7 +14,9 @@ export const getCookie = (name: string): string | null => {
   return null;
 };
 
-export function useAuthRedirect() {
+export function useAuthRedirect(
+  requireLogin = true,
+) {
   const location = useLocation();
 
   const { data: userInfo, isLoading, isError } = useQuery({
@@ -26,23 +28,26 @@ export function useAuthRedirect() {
     refetchOnWindowFocus: false,
   });
 
-  // Redirect if missing
-  useEffect(() => {
-    // If the query has been attempted and there was an error (e.g., no session),
-    // redirect to login
-    if (!isLoading && isError) {
-      const redirectTo = `/login?redirectTo=${
-        encodeURIComponent(location.path)
-      }`;
-      location.route(redirectTo, true);
-    }
-  }, [isLoading, isError, location]);
+  // Redirect if requireLogin is true and there's an error (unauthorized)
+  if (requireLogin) {
+    useEffect(() => {
+      // If the query has been attempted with an error (e.g., no session),
+      // redirect to login
+      if (!isLoading && isError) {
+        const redirectTo = `/login?redirectTo=${
+          encodeURIComponent(location.path)
+        }`;
+        location.route(redirectTo, true);
+      }
+    }, [isLoading, isError, location]);
+  }
 
   // Return user info when loaded, null while loading or if error
   return {
-    username: isLoading || isError ? null : userInfo?.username || null,
-    isAdmin: isLoading || isError ? false : userInfo?.is_admin || false,
+    username: userInfo?.username ?? null,
+    isAdmin: userInfo?.is_admin ?? false,
     isLoading,
     isError,
+    isAuthenticated: !isError && !!userInfo?.username,
   };
 }
