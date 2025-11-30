@@ -16,8 +16,9 @@ export default function StudySetsPage() {
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  const username = useAuthRedirect();
+  const { username, isLoading: authLoading } = useAuthRedirect();
 
+  if (authLoading) return <div class="studysets-page">Loading...</div>;
   if (!username) return null;
 
   const {
