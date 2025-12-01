@@ -73,3 +73,26 @@
   margin-bottom: 40px;
   gap: 20px;
 }
+
+.delete-set {
+  margin-top: 48px;
+  padding-top: 24px;
+  text-align: center;
+}
+
+.delete-set-button {
+  background-color: #dc3545;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.delete-set-button:hover {
+  background-color: #c82333;
+}
+
+

@@ -1,11 +1,12 @@
 import "./style.css";
 import { FlashCard } from "../../components/FlashCard.tsx";
 import { EditButton } from "../../components/EditButton.tsx";
-import { useState } from "preact/hooks";
+import { useEffect, useState } from "preact/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getSetById, updateSet } from "../../api/sets.ts";
+import { deleteSet, getSetById, updateSet } from "../../api/sets.ts";
 import { createCard, deleteCard, updateCard } from "../../api/cards.ts";
 import { useLocation, useRoute } from "preact-iso/router";
+import { useAuthRedirect } from "../../utils/cookies.ts";
 
 export default function SetEditPage() {
   const location = useLocation();
@@ -13,6 +14,7 @@ export default function SetEditPage() {
 
   const route = useRoute();
   const setId = route.params.id;
+  const { isAdmin, username, isLoading: authLoading } = useAuthRedirect(false);
 
   const {
     data: set,
@@ -28,6 +30,17 @@ export default function SetEditPage() {
       return !error.message.includes("404");
     },
   });
+
+  // Redirect unauthorized users to view page after set data loads
+  useEffect(() => {
+    if (!authLoading && !isLoading && setId && set) {
+      const isOwner = username === set.owner;
+      const allowed = isAdmin || isOwner;
+      if (!allowed) {
+        location.route(`/view/${setId}`, true);
+      }
+    }
+  }, [authLoading, isLoading, isAdmin, username, set, setId, location]);
 
   const [front, setFront] = useState("");
   const [back, setBack] = useState("");
@@ -140,6 +153,24 @@ export default function SetEditPage() {
     });
   };
 
+  const deleteSetMutation = useMutation({
+    mutationFn: (setId: string) => deleteSet(setId),
+    onSuccess: () => {
+      // Invalidate queries so the deleted set is removed from cache (so its gone after redirect without need of refresh)
+      queryClient.invalidateQueries({ queryKey: ["ownedSets"] });
+      queryClient.invalidateQueries({ queryKey: ["trackedSets"] });
+      queryClient.invalidateQueries({ queryKey: ["set", setId] });
+      // takes the user back to studysets page
+      location.route("/studysets");
+    },
+  });
+
+  function handleDeleteSet() {
+    if (confirm("Are you sure you want to delete this set?")) {
+      deleteSetMutation.mutate(setId);
+    }
+  }
+
   if (isLoading) {
     return <div class="set-edit-page">Loading set...</div>;
   }
@@ -242,6 +273,16 @@ export default function SetEditPage() {
             </div>
           )
           : <div>No cards yet. Add the first one above.</div>}
+      </section>
+
+      <section class="delete-set">
+        <button
+          class="delete-set-button"
+          onClick={handleDeleteSet}
+          disabled={deleteSetMutation.isPending}
+        >
+          {deleteSetMutation.isPending ? "Deleting..." : "Delete Set"}
+        </button>
       </section>
     </div>
   );

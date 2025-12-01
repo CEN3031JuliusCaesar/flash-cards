@@ -3,12 +3,20 @@ import { FlashCard } from "../../components/FlashCard.tsx";
 import { useQuery } from "@tanstack/react-query";
 import { getSetById } from "../../api/sets.ts";
 import { useLocation, useRoute } from "preact-iso/router";
+import { EditButton } from "../../components/EditButton.tsx";
+import { useAuthRedirect } from "../../utils/cookies.ts";
 
 export default function SetViewPage() {
   const location = useLocation();
 
   const route = useRoute();
   const setId = route.params.id;
+  const { isAdmin, username, isLoading: authLoading } = useAuthRedirect(false);
+  const setEditUrl = setId ? `/set/${setId}` : "/set";
+
+
+  // shows status in inspect element for debugging memes
+  console.log("SetView - isAdmin:", isAdmin, "authLoading:", authLoading, "setId:", setId);
 
   const {
     data: set,
@@ -46,6 +54,10 @@ export default function SetViewPage() {
     <div class="set-view-page">
       <div class="header">
         <h3 onClick={() => location.route("/studysets")}>🡄 Back to Sets</h3>
+        {/* show edit button if admin, set owner, or devuser */}
+        {!authLoading && setId && (isAdmin || username === set?.owner) && (
+          <EditButton onClick={() => location.route(setEditUrl)} />
+        )}
       </div>
 
       <h2>{set?.title ?? "Study Set"}</h2>
