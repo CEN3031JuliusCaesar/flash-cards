@@ -60,7 +60,7 @@ Deno.test({
 
     // With 2 days between start and now, streak should be 3 (2 days + 1)
     assertEquals(ctx.response.status, 200);
-    assertEquals(ctx.response.body, [{ current_streak: 3 }]);
+    assertEquals(ctx.response.body, { current_streak: 3 });
   },
 });
 
@@ -94,7 +94,7 @@ Deno.test({
     await mw(ctx, next);
 
     assertEquals(ctx.response.status, 200);
-    assertEquals(ctx.response.body, [{ current_streak: 0 }]);
+    assertEquals(ctx.response.body, { current_streak: 0 });
   },
 });
 
