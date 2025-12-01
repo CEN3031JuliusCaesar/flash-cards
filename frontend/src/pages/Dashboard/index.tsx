@@ -1,6 +1,7 @@
 import "./style.css";
 import { useLocation } from "preact-iso/router";
 import { useEffect, useState } from "preact/hooks";
+import { Search } from "../../components/Search.tsx";
 
 export default function DashboardPage() {
   const location = useLocation();
@@ -81,6 +82,8 @@ export default function DashboardPage() {
         <h1>Welcome back! 👋</h1>
         <p class="current-time">{currentTime.toLocaleString()}</p>
       </div>
+
+      <Search class="small"></Search>
 
       {/* Quick Stats Section */}
       <div class="stats-section">

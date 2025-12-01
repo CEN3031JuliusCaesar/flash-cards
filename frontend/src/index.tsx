@@ -14,6 +14,7 @@ const Register = lazy(() => import("./pages/Register/index.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard/index.tsx"));
 const Learn = lazy(() => import("./pages/Learn/index.tsx"));
 const StudySets = lazy(() => import("./pages/Studysets/index.tsx"));
+const Search = lazy(() => import("./pages/Search/index.tsx"));
 
 export function App() {
   return (
@@ -27,6 +28,7 @@ export function App() {
             <Route path="/register" component={Register} />
             <Route path="/learn/:id" component={Learn} />
             <Route path="/studysets" component={StudySets} />
+            <Route path="/search" component={Search} />
             <Route default component={NotFound} />
           </Router>
         </main>
