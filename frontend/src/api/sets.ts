@@ -45,7 +45,7 @@ export const getTrackedSets = async (): Promise<OwnedSet[]> => {
 
 export const getSetById = async (
   setId: string,
-  study?: string,
+  study?: true | number,
 ): Promise<Set> => {
   let url = `/api/sets/${setId}`;
   if (study !== undefined) {
@@ -88,8 +88,8 @@ export const getSetsByOwner = async (
 };
 
 export type CardData = {
-  front: string | null;
-  back: string | null;
+  front: string;
+  back: string;
 };
 
 export type SearchResult = {
@@ -97,7 +97,7 @@ export type SearchResult = {
   title: string;
   owner: string;
   rank: number;
-  card: CardData | null;
+  card: CardData | undefined;
 };
 
 export const searchSets = async (

@@ -1,25 +1,20 @@
-import { useQuery } from "@tanstack/react-query";
-import { getSetTrackedStatus } from "../api/sets.ts";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getSetTrackedStatus, trackSet, untrackSet } from "../api/sets.ts";
 
 import "./SetCard.css";
 import { useLocation } from "preact-iso";
 // import { EditButton } from "./EditButton.tsx";
 
-export function SetCard({ set, onToggle }: {
+export function SetCard({ set, previewCard }: {
   set: {
     title: string;
-    creator: string;
-    published: string;
-    cards: number;
+    owner: string;
     id: string;
-    isOwned: boolean;
   };
-  onToggle?: (
-    setId: string,
-    currentlyTracked: "SET_UNTRACKED" | "SET_TRACKED",
-  ) => void;
+  previewCard?: { front: string; back: string };
 }) {
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   // Query to check if this specific set is tracked
   const { data: trackedStatus = { isTracked: "SET_UNTRACKED" } } = useQuery({
@@ -28,49 +23,71 @@ export function SetCard({ set, onToggle }: {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
+  const trackSetMutation = useMutation({
+    mutationFn: trackSet,
+    onSuccess: (_, setId) => {
+      queryClient.invalidateQueries({ queryKey: ["trackedSets"] });
+      queryClient.invalidateQueries({ queryKey: ["setTrackedStatus", setId] });
+    },
+  });
+
+  const untrackSetMutation = useMutation({
+    mutationFn: untrackSet,
+    onSuccess: (_, setId) => {
+      queryClient.invalidateQueries({ queryKey: ["trackedSets"] });
+      queryClient.invalidateQueries({ queryKey: ["setTrackedStatus", setId] });
+    },
+  });
+
   const toggleEnabled = () => {
-    if (onToggle) {
-      onToggle(set.id, trackedStatus.isTracked);
+    if (trackedStatus.isTracked == "SET_TRACKED") {
+      untrackSetMutation.mutate(set.id);
+    } else {
+      trackSetMutation.mutate(set.id);
     }
   };
 
   return (
     <div class="set-card">
-      <div
-        class="set-card-title clickable"
-        onClick={() => location.route(`/view/${set.id}`)}
-      >
-        {set.title}
-      </div>
-
-      <div class="set-card-info">
-        <div>
-          Creator:{" "}
-          <span
-            onClick={() => location.route(`/user/${set.creator}`)}
-            class="creator"
-          >
-            {set.creator}
-          </span>
+      <div class="primary-info">
+        <div
+          class="set-card-title clickable"
+          onClick={() => location.route(`/set/${set.id}`)}
+        >
+          {set.title}
         </div>
-        {
-          /*<div>Published: {set.published}</div>
-        <div>{set.cards} Cards</div>*/
-        }
-      </div>
 
-      <div class="set-card-controls">
-        {
-          /* {set.isOwned && (
-          <EditButton onClick={() => location.route(`/set/${set.id}`)} />
-        )} */
-        }
-        <div class="set-card-icon" onClick={toggleEnabled}>
-          {trackedStatus.isTracked === "SET_TRACKED"
-            ? <div class="icon-check">✔</div>
-            : <div class="icon-plus">＋</div>}
+        <div class="set-card-info clickable">
+          <div>
+            Creator:{" "}
+            <span
+              onClick={() => location.route(`/user/${set.owner}`)}
+              class="creator"
+            >
+              {set.owner}
+            </span>
+          </div>
+          {
+            /*<div>Published: {set.published}</div>
+          <div>{set.cards} Cards</div>*/
+          }
+        </div>
+
+        <div class="set-card-controls">
+          <div class="set-card-icon" onClick={toggleEnabled}>
+            {trackedStatus.isTracked === "SET_TRACKED"
+              ? <div class="icon-check">✔</div>
+              : <div class="icon-plus">＋</div>}
+          </div>
         </div>
       </div>
+
+      {previewCard && (
+        <div class="preview-card">
+          <div class="front">{previewCard.front}</div>
+          <div class="back">{previewCard.back}</div>
+        </div>
+      )}
     </div>
   );
 }

@@ -27,46 +27,22 @@ jobs:
       - name: Create coverage directory
         run: mkdir -p coverage
 
-      - name: Init backend
-        working-directory: ./backend
-        run: deno install
-
-      - name: Check backend formatting
-        working-directory: ./backend
+      - name: Check formatting
+        working-directory: .
         run: deno fmt --check
 
-      - name: Check backend types
-        working-directory: ./backend
+      - name: Check types
+        working-directory: .
         run: deno check
 
-      - name: Test backend code
-        working-directory: ./backend
+      - name: Test code
+        working-directory: .
         run: |
-          deno test --coverage=../cov_backend -A --parallel
-          deno coverage ../cov_backend --lcov --output=../coverage/backend.lcov
+          deno test --coverage=cov_backend -A --parallel
+          deno coverage cov_backend --lcov --output=coverage/backend.lcov
 
-      - name: Lint backend code
-        working-directory: ./backend
-        run: deno lint
-
-      - name: Init frontend
-        working-directory: ./frontend
-        run: deno install
-
-      - name: Check frontend formatting
-        working-directory: ./frontend
-        run: deno fmt --check
-
-      - name: Check frontend types
-        working-directory: ./frontend
-        run: deno check
-
-      - name: Test frontend code
-        working-directory: ./frontend
-        run: deno test -A --parallel
-
-      - name: Lint frontend code
-        working-directory: ./frontend
+      - name: Lint code
+        working-directory: .
         run: deno lint
 
       - name: Setup LCOV

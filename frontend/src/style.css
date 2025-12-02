@@ -8,9 +8,9 @@
   --color-accent: #f7adff;
 
   /* Neutral Colors */
-  --color-text-primary: #1a202c;
-  --color-text-secondary: #4a5568;
-  --color-text-tertiary: #718096;
+  --color-text-primary: #111;
+  --color-text-secondary: #333;
+  --color-text-tertiary: #555;
 
   /* Background Colors */
   --color-bg-primary: #ffffff;
@@ -212,6 +212,15 @@ main {
   align-items: center;
   text-align: center;
   border-radius: var(--radius-xl);
+
+  .header {
+    width: 100%;
+    float: top;
+    h3 {
+      text-align: left;
+      color: var(--color-text-tertiary);
+    }
+  }
 
   @media (max-width: 768px) {
     width: 100vw;

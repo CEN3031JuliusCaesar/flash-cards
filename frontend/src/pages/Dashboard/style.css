@@ -123,10 +123,6 @@
   transition: transform var(--transition-normal);
 }
 
-.nav-card:hover .nav-arrow {
-  transform: translateX(var(--border-accent));
-}
-
 .nav-card {
   background: var(--color-bg-primary);
   border: var(--border-thin) solid var(--color-border);
@@ -141,10 +137,18 @@
   width: 100%;
   border-left: var(--border-accent) solid var(--color-primary);
 
-  &:hover {
+  &:disabled {
+    background: var(--color-bg-secondary);
+  }
+
+  &:hover:enabled {
     /*transform: translateY(-4px);*/
     border-left-width: var(--border-accent-hover);
     box-shadow: var(--shadow-lg);
+
+    .nav-arrow {
+      transform: translateX(var(--border-accent));
+    }
   }
 
   h3 {

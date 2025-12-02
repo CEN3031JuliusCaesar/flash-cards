@@ -4,8 +4,6 @@ import {
   getSetsByOwner,
   getTrackedSets,
   type Set,
-  trackSet,
-  untrackSet,
 } from "../../api/sets.ts";
 import { useAuthRedirect } from "../../utils/cookies.ts";
 import "./style.css";
@@ -39,22 +37,6 @@ export default function StudySetsPage() {
     queryKey: ["trackedSets"],
     queryFn: () => getTrackedSets(),
     staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  const trackSetMutation = useMutation({
-    mutationFn: trackSet,
-    onSuccess: (_, setId) => {
-      queryClient.invalidateQueries({ queryKey: ["trackedSets"] });
-      queryClient.invalidateQueries({ queryKey: ["setTrackedStatus", setId] });
-    },
-  });
-
-  const untrackSetMutation = useMutation({
-    mutationFn: untrackSet,
-    onSuccess: (_, setId) => {
-      queryClient.invalidateQueries({ queryKey: ["trackedSets"] });
-      queryClient.invalidateQueries({ queryKey: ["setTrackedStatus", setId] });
-    },
   });
 
   const createSetMutation = useMutation({
@@ -96,18 +78,8 @@ export default function StudySetsPage() {
           <SetCard
             set={{
               title: set.title,
-              creator: username,
-              published: "Just now", // TODO: Add this info to api endpoints if we want it.
-              cards: set.id ? 0 : 0, // TODO: Add this info to api endpoints if we want it.
+              owner: username,
               id: set.id,
-              isOwned: true,
-            }}
-            onToggle={(setId, currentlyTracked) => {
-              if (currentlyTracked == "SET_TRACKED") {
-                untrackSetMutation.mutate(setId);
-              } else {
-                trackSetMutation.mutate(setId);
-              }
             }}
           />
         ))}
@@ -130,18 +102,8 @@ export default function StudySetsPage() {
             key={set.id}
             set={{
               title: set.title,
-              creator: set.owner,
-              published: "Just now", // TODO: Add to API if wanted
-              cards: 0, // TODO: Add to API if wanted
+              owner: set.owner,
               id: set.id,
-              isOwned: false,
-            }}
-            onToggle={(setId, currentlyTracked) => {
-              if (currentlyTracked == "SET_TRACKED") {
-                untrackSetMutation.mutate(setId);
-              } else {
-                trackSetMutation.mutate(setId);
-              }
             }}
           />
         ))}

@@ -1,0 +1,8 @@
+.results {
+  width: 100%;
+
+  .set-card {
+    --card-height: none;
+    margin-top: 1em;
+  }
+}
