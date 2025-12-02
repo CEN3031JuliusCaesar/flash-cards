@@ -8,15 +8,14 @@
   .flashcard {
     width: 300px;
     height: 200px;
-    border: 2px solid #333;
     border-radius: 8px;
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 1.5rem;
     margin-bottom: 1rem;
-    background-color: #f0f0f0;
-    color: #000;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
     transition: transform 0.6s;
     transform-style: preserve-3d;
     position: relative;

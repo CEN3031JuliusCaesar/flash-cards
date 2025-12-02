@@ -4,11 +4,14 @@ import { useLocation, useRoute } from "preact-iso/router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getSetById, Set } from "../../api/sets.ts";
 import { studyCard } from "../../api/cards.ts";
+import { useAuthRedirect } from "../../utils/cookies.ts";
 
 const FlashCardPage = () => {
   const location = useLocation();
   const route = useRoute();
   const queryClient = useQueryClient();
+
+  const { isLoading, username } = useAuthRedirect();
 
   const id = route.params.id;
 
@@ -19,6 +22,7 @@ const FlashCardPage = () => {
   } = useQuery({
     queryKey: ["sets", id, "study"],
     queryFn: () => getSetById(id, true),
+    enabled: (username != null),
   });
 
   const updateCardMutation = useMutation({
@@ -38,6 +42,10 @@ const FlashCardPage = () => {
   });
 
   const [flipped, setFlipped] = useState(false);
+
+  if (isLoading) {
+    return <>Loading...</>;
+  }
 
   if (studySet == null) {
     return (
