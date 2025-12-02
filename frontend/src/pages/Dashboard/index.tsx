@@ -2,15 +2,20 @@ import "./style.css";
 import { useLocation } from "preact-iso/router";
 import { useEffect, useState } from "preact/hooks";
 import { Search } from "../../components/Search.tsx";
+import { useAuthRedirect } from "../../utils/cookies.ts";
+import { useQuery } from "@tanstack/react-query";
+import { getCurrentStreak } from "../../api/user/streak.ts";
 
 export default function DashboardPage() {
   const location = useLocation();
-  const [currentTime, setCurrentTime] = useState(new Date());
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const { username, isLoading: authLoading } = useAuthRedirect(false);
+
+  const { data: streak } = useQuery({
+    queryKey: ["streak", username],
+    queryFn: getCurrentStreak,
+    enabled: Boolean(username),
+  });
 
   const navigationCards = [
     {
@@ -19,7 +24,8 @@ export default function DashboardPage() {
       icon: "🎯",
       path: "/learn/temp",
       colorClass: "card-green",
-      stats: "12 cards ready",
+      enabled: true,
+      stats: "",
     },
     {
       title: "Study Sets",
@@ -27,7 +33,8 @@ export default function DashboardPage() {
       icon: "📚",
       path: "/studysets",
       colorClass: "card-blue",
-      stats: "5 active sets",
+      enabled: true,
+      stats: "",
     },
     {
       title: "Progress",
@@ -35,52 +42,29 @@ export default function DashboardPage() {
       icon: "📊",
       path: "/progress",
       colorClass: "card-orange",
-      stats: "85% accuracy",
+      enabled: true,
+      stats: "",
     },
     {
       title: "Profile",
       description: "Account settings and preferences",
       icon: "👤",
-      path: "/profile",
+      path: (!authLoading && username ? "/user/" + username : "/login"),
       colorClass: "card-purple",
-      stats: "Level 3",
+      enabled: true,
+      stats: "",
     },
   ];
-
-  const recentActivity = [
-    {
-      action: "Completed",
-      subject: "Spanish Vocabulary",
-      time: "2 hours ago",
-      score: "92%",
-    },
-    {
-      action: "Created",
-      subject: "History Terms",
-      time: "1 day ago",
-      score: "New",
-    },
-    {
-      action: "Studied",
-      subject: "Math Formulas",
-      time: "2 days ago",
-      score: "78%",
-    },
-  ];
-
-  const todayStats = {
-    cardsStudied: 47,
-    timeSpent: "1h 23m",
-    streak: 7,
-    accuracy: 89,
-  };
 
   return (
     <>
       {/* Welcome Section at the top */}
       <div class="welcome-header">
-        <h1>Welcome back! 👋</h1>
-        <p class="current-time">{currentTime.toLocaleString()}</p>
+        <h1>
+          {((streak?.current_streak ?? 0) > 0)
+            ? "Welcome back"
+            : "Welcome to QuizLit"}! 👋
+        </h1>
       </div>
 
       <Search class="small"></Search>
@@ -88,16 +72,8 @@ export default function DashboardPage() {
       {/* Quick Stats Section */}
       <div class="stats-section">
         <div class="stat-item">
-          <span class="stat-number">{todayStats.streak}</span>
+          <span class="stat-number">{streak?.current_streak ?? 0}</span>
           <span class="stat-label">Day Streak</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{todayStats.cardsStudied}</span>
-          <span class="stat-label">Cards Today</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{todayStats.accuracy}%</span>
-          <span class="stat-label">Accuracy</span>
         </div>
       </div>
 
@@ -112,6 +88,7 @@ export default function DashboardPage() {
                 key={index}
                 class={`nav-card ${card.colorClass}`}
                 onClick={() => location.route(card.path)}
+                disabled={!card.enabled}
               >
                 <div class="nav-card-header">
                   <span class="nav-icon">{card.icon}</span>
@@ -124,47 +101,6 @@ export default function DashboardPage() {
             ))}
           </div>
         </section>
-
-        {/* Progress and Activity Grid */}
-        <div class="dashboard-grid">
-          <section class="today-progress">
-            <h3>Today's Progress</h3>
-            <div class="progress-stats">
-              <div class="progress-details">
-                <div class="detail-item">
-                  <span class="detail-label">Time Spent</span>
-                  <span class="detail-value">{todayStats.timeSpent}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Cards Studied</span>
-                  <span class="detail-value">{todayStats.cardsStudied}</span>
-                </div>
-                <div class="detail-item">
-                  <span class="detail-label">Current Streak</span>
-                  <span class="detail-value">{todayStats.streak} days</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section class="recent-activity">
-            <h3>Recent Activity</h3>
-            <div class="activity-list">
-              {recentActivity.map((activity, index) => (
-                <div key={index} class="activity-item">
-                  <div class="activity-info">
-                    <span class="activity-action">{activity.action}</span>
-                    <span class="activity-subject">{activity.subject}</span>
-                  </div>
-                  <div class="activity-meta">
-                    <span class="activity-score">{activity.score}</span>
-                    <span class="activity-time">{activity.time}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
       </div>
     </>
   );

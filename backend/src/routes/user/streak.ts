@@ -51,7 +51,7 @@ export function createStreakRouter(db: Database) {
       WHERE u.username = ${username};
     `;
 
-    ctx.response.body = data;
+    ctx.response.body = data[0];
   });
 
   return router;
