@@ -62,8 +62,8 @@ export default function DashboardPage() {
       <div class="welcome-header">
         <h1>
           {((streak?.current_streak ?? 0) > 0)
-            ? "Welcome back"
-            : "Welcome to QuizLit"}! 👋
+            ? "Welcome back to QuizLit!"
+            : "Welcome to QuizLit!"}
         </h1>
       </div>
 
