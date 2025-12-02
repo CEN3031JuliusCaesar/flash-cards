@@ -277,6 +277,7 @@ export default function SetEditPage() {
 
       <section class="delete-set">
         <button
+          type="button"
           class="delete-set-button"
           onClick={handleDeleteSet}
           disabled={deleteSetMutation.isPending}
