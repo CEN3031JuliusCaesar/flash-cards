@@ -14,9 +14,15 @@ export default function SetViewPage() {
   const { isAdmin, username, isLoading: authLoading } = useAuthRedirect(false);
   const setEditUrl = setId ? `/set/${setId}` : "/set";
 
-
   // shows status in inspect element for debugging memes
-  console.log("SetView - isAdmin:", isAdmin, "authLoading:", authLoading, "setId:", setId);
+  console.log(
+    "SetView - isAdmin:",
+    isAdmin,
+    "authLoading:",
+    authLoading,
+    "setId:",
+    setId,
+  );
 
   const {
     data: set,

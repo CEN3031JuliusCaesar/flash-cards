@@ -60,9 +60,11 @@ export function SetCard({ set, onToggle }: {
       </div>
 
       <div class="set-card-controls">
-        {/* {set.isOwned && (
+        {
+          /* {set.isOwned && (
           <EditButton onClick={() => location.route(`/set/${set.id}`)} />
-        )} */}
+        )} */
+        }
         <div class="set-card-icon" onClick={toggleEnabled}>
           {trackedStatus.isTracked === "SET_TRACKED"
             ? <div class="icon-check">✔</div>
