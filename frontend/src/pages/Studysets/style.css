@@ -7,13 +7,6 @@
   width: 100%;
 }
 
-.header {
-  h3 {
-    text-align: left;
-    color: var(--color-text-tertiary);
-  }
-}
-
 .set-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--card-lowidth), 1fr));

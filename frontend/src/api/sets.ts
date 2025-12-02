@@ -46,7 +46,7 @@ export const getTrackedSets = async (): Promise<OwnedSet[]> => {
 
 export const getSetById = async (
   setId: string,
-  study?: string,
+  study?: true | number,
 ): Promise<Set> => {
   let url = `/api/sets/${setId}`;
   if (study !== undefined) {

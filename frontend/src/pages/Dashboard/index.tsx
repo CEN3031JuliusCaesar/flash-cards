@@ -22,7 +22,7 @@ export default function DashboardPage() {
       title: "Study Session",
       description: "Start learning with flashcards",
       icon: "🎯",
-      path: "/learn/temp",
+      path: "/learn/tracked",
       colorClass: "card-green",
       enabled: true,
       stats: "",
