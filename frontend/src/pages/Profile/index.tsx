@@ -3,6 +3,7 @@ import { useLocation, useRoute } from "preact-iso";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getUserProfile, updateUserProfile } from "../../api/user/profile.ts";
 import { getSetsByOwner } from "../../api/sets.ts";
+import { logout } from "../../api/user/auth.ts";
 import { useAuthRedirect } from "../../utils/cookies.ts";
 import { useState } from "preact/hooks";
 import { SetCard } from "../../components/SetCard.tsx";
@@ -31,7 +32,8 @@ export default function ProfilePage() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const isOwnProfile = currentUsername === profileUsername;
+  const isOwnProfile = currentUsername === profileUsername || isAdmin;
+  const logoutValid = currentUsername === profileUsername;
 
   if (isLoading) {
     return (
@@ -82,10 +84,16 @@ export default function ProfilePage() {
     ) {
       // DELETE CARD API CALL HERE
       // remove alert after api call implementation
+      // delete all sets owned by user from all users' tracked sets (I would imagine removing it from the db will remove it from the tracked sets)
       // return to dashboard after deletion if !isOwnProfile
       // return to login if isOwnProfile
       alert("Profile deletion is not yet implemented on the backend.");
     }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    location.route("/login");
   };
 
   return (
@@ -98,6 +106,11 @@ export default function ProfilePage() {
           {"😂"}
         </div>
         <h1 class="profile-username">{profileUsername}</h1>
+        {logoutValid && (
+          <button class="logout-button" onClick={handleLogout}>
+            Logout
+          </button>
+        )}
       </div>
       {isOwnProfile && isEditingDescription
         ? (
@@ -167,7 +180,7 @@ export default function ProfilePage() {
           : <p>No sets created yet.</p>}
       </section>
 
-      {(isOwnProfile || isAdmin) && (
+      {isOwnProfile && (
         <section class="delete-profile">
           <button
             class="delete-profile-button"

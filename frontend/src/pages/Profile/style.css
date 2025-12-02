@@ -51,6 +51,23 @@
   font-size: 2rem;
   font-weight: 600;
   margin: 0;
+  margin-right: auto;
+}
+
+.logout-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: background-color 0.2s;
+  margin-left: auto;
+}
+
+.logout-button:hover {
+  background: #c82333;
 }
 
 .profile-description-box {
