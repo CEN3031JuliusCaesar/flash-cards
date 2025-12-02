@@ -1,0 +1,35 @@
+.searchbar {
+  width: 100%;
+  margin-bottom: var(--spacing-lg);
+
+  form {
+    background: var(--color-bg-secondary);
+    display: inline-flex;
+    align-items: center;
+    padding: var(--radius-xl);
+    border-radius: var(--radius-xl);
+
+    font-size: 3em;
+    width: 100%;
+
+    input {
+      display: block;
+      flex-grow: 1;
+      min-width: none;
+      font-size: 1em;
+      margin-left: 0.5em;
+      height: 2em;
+      line-height: 0;
+      width: auto;
+      background: none;
+      border: none;
+    }
+  }
+
+  &.small {
+    form {
+      font-size: 2em;
+      max-width: 55rem;
+    }
+  }
+}

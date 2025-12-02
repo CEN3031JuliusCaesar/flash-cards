@@ -76,11 +76,6 @@ export function createAuthRouter(db: Database) {
       maxAge: 48 * 60 * 60,
       path: "/",
     });
-    ctx.cookies.set("USERNAME", user, {
-      httpOnly: false,
-      maxAge: 48 * 60 * 60,
-      path: "/",
-    });
     ctx.response.status = 200;
   });
 

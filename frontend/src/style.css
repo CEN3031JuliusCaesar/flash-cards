@@ -213,6 +213,15 @@ main {
   text-align: center;
   border-radius: var(--radius-xl);
 
+  .header {
+    width: 100%;
+    float: top;
+    h3 {
+      text-align: left;
+      color: var(--color-text-tertiary);
+    }
+  }
+
   @media (max-width: 768px) {
     width: 100vw;
     padding: 1rem;

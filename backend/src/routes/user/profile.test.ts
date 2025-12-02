@@ -423,3 +423,119 @@ Deno.test({
     }]);
   },
 });
+
+Deno.test({
+  name: "Get Current User Info (Me) - Success",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create user
+    const user = await createUser(
+      db,
+      "testuser",
+      undefined,
+      "Test description",
+      3,
+    );
+    const session = await createSession(db, user);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/me`,
+      method: "GET",
+      headers: [
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 200);
+    assertEquals(ctx.response.body, {
+      username: user.username,
+      is_admin: user.is_admin,
+    });
+  },
+});
+
+Deno.test({
+  name: "Get Current User Info (Me) - Admin User",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create admin user
+    const adminUser = await createUser(
+      db,
+      "adminuser",
+      undefined,
+      "Admin description",
+      3,
+      true, // isAdmin = true
+    );
+    const session = await createSession(db, adminUser);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/me`,
+      method: "GET",
+      headers: [
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 200);
+    assertEquals(ctx.response.body, {
+      username: adminUser.username,
+      is_admin: adminUser.is_admin,
+    });
+  },
+});
+
+Deno.test({
+  name: "Get Current User Info (Me) - No Session",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/me`,
+      method: "GET",
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 401);
+    assertEquals(ctx.response.body, { error: "NO_SESSION_TOKEN" });
+  },
+});
+
+Deno.test({
+  name: "Get Current User Info (Me) - Invalid Session",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/me`,
+      method: "GET",
+      headers: [
+        ["Cookie", "SESSION=invalid_session_token"],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 401);
+    assertEquals(ctx.response.body, { error: "Invalid session" });
+  },
+});

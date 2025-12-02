@@ -89,8 +89,8 @@ export const getSetsByOwner = async (
 };
 
 export type CardData = {
-  front: string | null;
-  back: string | null;
+  front: string;
+  back: string;
 };
 
 export type SearchResult = {
@@ -98,7 +98,7 @@ export type SearchResult = {
   title: string;
   owner: string;
   rank: number;
-  card: CardData | null;
+  card: CardData | undefined;
 };
 
 export const searchSets = async (
