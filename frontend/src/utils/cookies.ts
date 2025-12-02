@@ -23,7 +23,7 @@ export function useAuthRedirect(
     queryKey: ["currentUser"],
     queryFn: getCurrentUser,
     staleTime: 5 * 60 * 1000,
-    retry: 1,
+    retry: 0,
     // Don't refetch on window focus to avoid unnecessary requests
     refetchOnWindowFocus: false,
   });
