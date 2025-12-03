@@ -3,11 +3,14 @@
   "$schema": "https://raw.githubusercontent.com/denoland/deno/refs/heads/main/cli/schemas/config-file.v1.json",
   "tasks": {
     "dev": {
-      "command": "cat",
       "dependencies": ["dev:backend", "dev:frontend"]
+    },
+    "dev:persistent": {
+      "dependencies": ["dev:backend:persistent", "dev:frontend"]
     },
     "dev:frontend": "deno task -f frontend dev",
     "dev:backend": "DEV=true deno task -f backend dev",
+    "dev:backend:persistent": "deno task -f backend dev",
     "prod:backend": {
       "command": "deno task -f backend dev",
       "dependencies": ["build"]
