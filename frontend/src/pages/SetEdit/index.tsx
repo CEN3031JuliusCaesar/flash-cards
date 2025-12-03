@@ -192,6 +192,13 @@ export default function SetEditPage() {
     <div class="set-edit-page">
       <div class="header">
         <h3 onClick={() => location.route("/studysets")}>🡄 Back to Sets</h3>
+        <button
+          type="button"
+          class="view-mode-button button"
+          onClick={() => location.route(`/view/${setId}`)}
+        >
+          View Mode
+        </button>
       </div>
 
       {editingTitle

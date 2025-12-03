@@ -27,6 +27,9 @@
 }
 
 .header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   h3 {
     text-align: left;
     color: var(--color-text-tertiary);
