@@ -1,7 +1,11 @@
 import "./style.css";
 import { useLocation, useRoute } from "preact-iso";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getUserProfile, updateUserProfile } from "../../api/user/profile.ts";
+import {
+  deleteUserProfile,
+  getUserProfile,
+  updateUserProfile,
+} from "../../api/user/profile.ts";
 import { getSetsByOwner } from "../../api/sets.ts";
 import { logout } from "../../api/user/auth.ts";
 import { useAuthRedirect } from "../../utils/cookies.ts";
@@ -32,7 +36,8 @@ export default function ProfilePage() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const isOwnProfile = currentUsername === profileUsername || isAdmin;
+  const isOwnProfile = currentUsername === profileUsername;
+  const canModifyProfile = isOwnProfile || isAdmin;
   const logoutValid = currentUsername === profileUsername;
 
   if (isLoading) {
@@ -76,18 +81,35 @@ export default function ProfilePage() {
     updateDescriptionMutation.mutate(newDescription);
   };
 
+  const deleteProfileMutation = useMutation({
+    mutationFn: (username: string) => deleteUserProfile(username),
+    onSuccess: () => {
+      // If deleting own profile, logout and redirect to login
+      if (isOwnProfile) {
+        logout();
+        location.route("/login");
+      } else {
+        // If admin deletes another user, go back to dashboard
+        location.route("/");
+      }
+    },
+    onError: (error: any) => {
+      console.error("Error deleting profile:", error);
+      alert(
+        `Error deleting profile: ${
+          error?.response?.data?.error || error.message
+        }`,
+      );
+    },
+  });
+
   const handleDeleteProfile = () => {
     if (
       confirm(
         "Are you sure you want to delete your profile? This will also delete all of your sets. This action cannot be undone.",
       )
     ) {
-      // DELETE CARD API CALL HERE
-      // remove alert after api call implementation
-      // delete all sets owned by user from all users' tracked sets (I would imagine removing it from the db will remove it from the tracked sets)
-      // return to dashboard after deletion if !isOwnProfile
-      // return to login if isOwnProfile
-      alert("Profile deletion is not yet implemented on the backend.");
+      deleteProfileMutation.mutate(profileUsername);
     }
   };
 
@@ -151,7 +173,7 @@ export default function ProfilePage() {
                 ? "No description yet. Click edit to add one."
                 : "No description.")}
             </p>
-            {isOwnProfile && (
+            {canModifyProfile && (
               <button
                 type="button"
                 class="edit-description-button"

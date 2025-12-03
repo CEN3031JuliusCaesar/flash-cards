@@ -539,3 +539,325 @@ Deno.test({
     assertEquals(ctx.response.body, { error: "Invalid session" });
   },
 });
+
+Deno.test({
+  name: "Delete User Account - By Owner",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create user
+    const user = await createUser(
+      db,
+      "testuser",
+      "test@example.com",
+      "Test description",
+      3,
+    );
+    const session = await createSession(db, user);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/${user.username}`,
+      method: "DELETE",
+      headers: [
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 200);
+    assertEquals(ctx.response.body, {
+      message: "Account deleted successfully",
+    });
+
+    // Verify the user was deleted from the database
+    const deletedUser = db
+      .sql`SELECT username FROM Users WHERE username = ${user.username};`;
+
+    assertEquals(deletedUser.length, 0);
+  },
+});
+
+Deno.test({
+  name: "Delete User Account - By Admin",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create regular user and admin user
+    const user = await createUser(
+      db,
+      "testuser",
+      "test@example.com",
+      "Test description",
+      1,
+    );
+    const adminUser = await createUser(
+      db,
+      "adminuser",
+      "admin@example.com",
+      "Admin description",
+      0,
+      true,
+    );
+    const adminSession = await createSession(db, adminUser);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/${user.username}`,
+      method: "DELETE",
+      headers: [
+        ["Cookie", `SESSION=${adminSession.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 200);
+    assertEquals(ctx.response.body, {
+      message: "Account deleted successfully",
+    });
+
+    // Verify the user was deleted from the database
+    const deletedUser = db
+      .sql`SELECT username FROM Users WHERE username = ${user.username};`;
+
+    assertEquals(deletedUser.length, 0);
+  },
+});
+
+Deno.test({
+  name: "Delete User Account - Unauthorized Access",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create two users
+    const user1 = await createUser(
+      db,
+      "user1",
+      "user1@example.com",
+      "User1 description",
+      2,
+    );
+    const user2 = await createUser(
+      db,
+      "user2",
+      "user2@example.com",
+      "User2 description",
+      4,
+    );
+    const session2 = await createSession(db, user2);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/${user1.username}`,
+      method: "DELETE",
+      headers: [
+        ["Cookie", `SESSION=${session2.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 403);
+    assertEquals(ctx.response.body, { error: UNAUTHORIZED });
+
+    // Verify the user was NOT deleted from the database
+    const userStillExists = db
+      .sql`SELECT username FROM Users WHERE username = ${user1.username};`;
+
+    assertEquals(userStillExists.length, 1);
+  },
+});
+
+Deno.test({
+  name: "Delete User Account - Admin Cannot Delete Last Admin",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create admin user (only admin)
+    const adminUser = await createUser(
+      db,
+      "adminuser",
+      "admin@example.com",
+      "Admin description",
+      0,
+      true,
+    );
+    const session = await createSession(db, adminUser);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/${adminUser.username}`,
+      method: "DELETE",
+      headers: [
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 400);
+    assertEquals(ctx.response.body, { error: "CANNOT_DELETE_LAST_ADMIN" });
+
+    // Verify the admin user was NOT deleted from the database
+    const adminStillExists = db
+      .sql`SELECT username, is_admin FROM Users WHERE username = ${adminUser.username};`;
+
+    assertEquals(adminStillExists.length, 1);
+    assertEquals(adminStillExists[0].is_admin, 1);
+  },
+});
+
+Deno.test({
+  name: "Delete User Account - Target User Not Found",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create a user
+    const user = await createUser(
+      db,
+      "testuser",
+      "test@example.com",
+      "Test description",
+      0,
+    );
+    const session = await createSession(db, user);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/nonexistentuser`,
+      method: "DELETE",
+      headers: [
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 404);
+    assertEquals(ctx.response.body, { error: "USER_NOT_FOUND" });
+  },
+});
+
+Deno.test({
+  name: "Delete User Account - No Session",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/testuser`,
+      method: "DELETE",
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 401);
+    assertEquals(ctx.response.body, { error: "NO_SESSION_TOKEN" });
+  },
+});
+
+Deno.test({
+  name: "Delete User Account - User Data Cascade Delete",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create user with related data
+    const user = await createUser(
+      db,
+      "testuser",
+      "test@example.com",
+      "Test description",
+      3,
+    );
+    const session = await createSession(db, user);
+
+    // Create a set for the user
+    const setId = crypto.randomUUID().replace(/-/g, "").substring(0, 16);
+    db.sql`INSERT INTO Sets (id, rowid_int, owner, title) VALUES (${setId}, 1, ${user.username}, 'Test Set');`;
+
+    // Create a card for the set
+    const cardId = crypto.randomUUID().replace(/-/g, "").substring(0, 16);
+    db.sql`INSERT INTO Cards (id, rowid_int, set_id, front, back) VALUES (${cardId}, 1, ${setId}, 'Front', 'Back');`;
+
+    // Create card progress for the user
+    db.sql`INSERT INTO CardProgress (username, card_id, points) VALUES (${user.username}, ${cardId}, 5);`;
+
+    // Create tracked set for the user
+    db.sql`INSERT INTO TrackedSets (username, set_id) VALUES (${user.username}, ${setId});`;
+
+    // Verify data exists before deletion
+    const userDataBefore = db
+      .sql`SELECT username FROM Users WHERE username = ${user.username};`;
+    const sessionsBefore = db
+      .sql`SELECT token FROM Sessions WHERE username = ${user.username};`;
+    const cardProgressBefore = db
+      .sql`SELECT card_id FROM CardProgress WHERE username = ${user.username};`;
+    const trackedSetsBefore = db
+      .sql`SELECT set_id FROM TrackedSets WHERE username = ${user.username};`;
+    const setsBefore = db
+      .sql`SELECT id FROM Sets WHERE owner = ${user.username};`;
+    const cardsBefore = db
+      .sql`SELECT id FROM Cards WHERE set_id = ${setId};`;
+
+    assertEquals(userDataBefore.length, 1);
+    assertEquals(sessionsBefore.length, 1);
+    assertEquals(cardProgressBefore.length, 1);
+    assertEquals(trackedSetsBefore.length, 1);
+    assertEquals(setsBefore.length, 1);
+    assertEquals(cardsBefore.length, 1);
+
+    // Delete the user
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/${user.username}`,
+      method: "DELETE",
+      headers: [
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 200);
+    assertEquals(ctx.response.body, {
+      message: "Account deleted successfully",
+    });
+
+    // Verify all related data was deleted via cascade
+    const userDataAfter = db
+      .sql`SELECT username FROM Users WHERE username = ${user.username};`;
+    const sessionsAfter = db
+      .sql`SELECT token FROM Sessions WHERE username = ${user.username};`;
+    const cardProgressAfter = db
+      .sql`SELECT card_id FROM CardProgress WHERE username = ${user.username};`;
+    const trackedSetsAfter = db
+      .sql`SELECT set_id FROM TrackedSets WHERE username = ${user.username};`;
+    const setsAfter = db
+      .sql`SELECT id FROM Sets WHERE owner = ${user.username};`;
+    const cardsAfter = db
+      .sql`SELECT id FROM Cards WHERE set_id = ${setId};`;
+
+    assertEquals(userDataAfter.length, 0);
+    assertEquals(sessionsAfter.length, 0);
+    assertEquals(cardProgressAfter.length, 0);
+    assertEquals(trackedSetsAfter.length, 0);
+    assertEquals(setsAfter.length, 0);
+    assertEquals(cardsAfter.length, 0);
+  },
+});

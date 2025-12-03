@@ -129,5 +129,69 @@ export function createProfileRouter(db: Database) {
     ctx.response.body = { message: "Profile updated successfully" };
   });
 
+  // Delete user account - can delete own account or any account if admin
+  router.delete("/:username", async (ctx) => {
+    const usernameFromSession = await getSession(ctx, db);
+    if (!usernameFromSession) return; // getSession already set the response
+
+    const { username } = ctx.params;
+
+    // Check if the target user exists first
+    const targetUser = db.sql<UsersSessionView>`
+      SELECT u.username, u.is_admin
+      FROM Users u
+      WHERE u.username = ${username};
+    `;
+
+    if (targetUser.length === 0) {
+      ctx.response.body = { error: "USER_NOT_FOUND" };
+      ctx.response.status = 404;
+      return;
+    }
+
+    // Get the current user from the session
+    const sessionUser = db.sql<UsersSessionView>`
+      SELECT u.username, u.is_admin
+      FROM Users u
+      WHERE u.username = ${usernameFromSession};
+    `;
+
+    if (sessionUser.length === 0) {
+      ctx.response.body = { error: "INVALID_SESSION" };
+      ctx.response.status = 401;
+      return;
+    }
+
+    const currentUser = sessionUser[0];
+
+    // Check if the current user is the target user or an admin
+    if (currentUser.username !== username && !currentUser.is_admin) {
+      ctx.response.body = { error: UNAUTHORIZED };
+      ctx.response.status = 403;
+      return;
+    }
+
+    // Prevent admin from deleting the last admin account
+    if (targetUser[0].is_admin) {
+      const adminCount = db.sql<{ count: number }>`
+        SELECT COUNT(*) as count
+        FROM Users
+        WHERE is_admin = 1;
+      `[0].count;
+
+      if (adminCount <= 1) {
+        ctx.response.body = { error: "CANNOT_DELETE_LAST_ADMIN" };
+        ctx.response.status = 400;
+        return;
+      }
+    }
+
+    // Perform the account deletion by removing the user
+    db.sql`DELETE FROM Users WHERE username = ${username};`;
+
+    ctx.response.status = 200;
+    ctx.response.body = { message: "Account deleted successfully" };
+  });
+
   return router;
 }

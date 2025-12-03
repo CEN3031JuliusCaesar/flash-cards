@@ -34,3 +34,10 @@ export const updateUserProfile = async (
   const response = await api.patch(`/api/user/profile/${username}`, params);
   return response.data;
 };
+
+export const deleteUserProfile = async (
+  username: string,
+): Promise<{ message: string }> => {
+  const response = await api.delete(`/api/user/profile/${username}`);
+  return response.data;
+};
