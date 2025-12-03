@@ -52,7 +52,7 @@ export function SetCard({ set, previewCard }: {
       <div class="primary-info">
         <div
           class="set-card-title clickable"
-          onClick={() => location.route(`/set/${set.id}`)}
+          onClick={() => location.route(`/view/${set.id}`)}
         >
           {set.title}
         </div>

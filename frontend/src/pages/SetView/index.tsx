@@ -60,10 +60,21 @@ export default function SetViewPage() {
     <div class="set-view-page">
       <div class="header">
         <h3 onClick={() => location.route("/studysets")}>🡄 Back to Sets</h3>
-        {/* show edit button if admin, set owner, or devuser */}
-        {!authLoading && setId && (isAdmin || username === set?.owner) && (
-          <EditButton onClick={() => location.route(setEditUrl)} />
-        )}
+        <div class="header-buttons">
+          {/* show edit button if admin, set owner, or devuser */}
+          {!authLoading && setId && (isAdmin || username === set?.owner) && (
+            <EditButton onClick={() => location.route(setEditUrl)} />
+          )}
+          {setId && (
+            <button
+              type="button"
+              class="study-button button"
+              onClick={() => location.route(`/learn/${setId}`)}
+            >
+              Study
+            </button>
+          )}
+        </div>
       </div>
 
       <h2>{set?.title ?? "Study Set"}</h2>
