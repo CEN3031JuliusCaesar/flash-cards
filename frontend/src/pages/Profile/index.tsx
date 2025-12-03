@@ -107,7 +107,7 @@ export default function ProfilePage() {
         </div>
         <h1 class="profile-username">{profileUsername}</h1>
         {logoutValid && (
-          <button class="logout-button" onClick={handleLogout}>
+          <button type="button" class="logout-button" onClick={handleLogout}>
             Logout
           </button>
         )}
@@ -129,12 +129,16 @@ export default function ProfilePage() {
             </div>
             <div class="description-actions">
               <button
+                type="button"
                 onClick={handleSaveDescription}
                 disabled={updateDescriptionMutation.isPending}
               >
                 {updateDescriptionMutation.isPending ? "Saving..." : "Save"}
               </button>
-              <button onClick={() => setIsEditingDescription(false)}>
+              <button
+                type="button"
+                onClick={() => setIsEditingDescription(false)}
+              >
                 Cancel
               </button>
             </div>
@@ -149,6 +153,7 @@ export default function ProfilePage() {
             </p>
             {isOwnProfile && (
               <button
+                type="button"
                 class="edit-description-button"
                 onClick={handleEditDescription}
               >
@@ -183,6 +188,7 @@ export default function ProfilePage() {
       {isOwnProfile && (
         <section class="delete-profile">
           <button
+            type="button"
             class="delete-profile-button"
             onClick={handleDeleteProfile}
           >
