@@ -39,6 +39,23 @@ app.use(async (ctx, next) => {
   await next();
 });
 
+// Serve static assets from /public/images
+app.use(async (ctx, next) => {
+  if (ctx.request.url.pathname.startsWith("/images/")) {
+    const filePath = ctx.request.url.pathname;
+
+    ctx.response.headers.set(
+      "Cache-Control",
+      "public, max-age=31536000, immutable",
+    );
+    const success = await send(ctx, filePath, {
+      root: import.meta.dirname + "/../public",
+    });
+    if (success) return;
+  }
+  await next();
+});
+
 // Fallback to index.html for client-side routing
 app.use(async (ctx, _next) => {
   const PUBLIC_DIR = import.meta.dirname + "/../public";

@@ -3,7 +3,8 @@
   "name": "backend",
   "tasks": {
     "dev": "deno run --allow-net --allow-read --allow-write --allow-env --allow-ffi --watch src/server.ts",
-    "compile": "deno compile --allow-net --allow-read --allow-write --allow-env --allow-ffi --include src --include public --no-check src/server.ts"
+    "compile": "deno compile --allow-net --allow-read --allow-write --allow-env --allow-ffi --include src --include public --no-check src/server.ts",
+    "compile:win": "deno compile --target x86_64-pc-windows-msvc --allow-net --allow-read --allow-write --allow-env --allow-ffi --include src --include public --no-check src/server.ts"
   },
   "imports": {
     "@db/sqlite": "jsr:@db/sqlite@^0.12.0",
