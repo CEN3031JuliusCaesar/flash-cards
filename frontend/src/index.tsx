@@ -17,6 +17,7 @@ const SetEdit = lazy(() => import("./pages/SetEdit/index.tsx"));
 const SetView = lazy(() => import("./pages/SetView/index.tsx"));
 const StudySets = lazy(() => import("./pages/Studysets/index.tsx"));
 const Search = lazy(() => import("./pages/Search/index.tsx"));
+const Profile = lazy(() => import("./pages/Profile/index.tsx"));
 
 export function App() {
   return (
@@ -33,6 +34,7 @@ export function App() {
             <Route path="/view/:id" component={SetView} />
             <Route path="/studysets" component={StudySets} />
             <Route path="/search" component={Search} />
+            <Route path="/user/:username" component={Profile} />
             <Route default component={NotFound} />
           </Router>
         </main>
