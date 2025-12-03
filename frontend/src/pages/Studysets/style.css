@@ -14,3 +14,8 @@
   margin-bottom: 40px;
   gap: 20px;
 }
+
+/* Hide edit buttons within Studysets page */
+.studysets-page .edit-button {
+  display: none;
+}

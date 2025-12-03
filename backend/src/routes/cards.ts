@@ -99,6 +99,141 @@ export function createCardRouter(db: Database) {
     ctx.response.status = 200;
   });
 
+  // Update a card by ID - Allows the owner of the set to update card content
+  router.patch("/:cardId", async (ctx) => {
+    const username = await getSession(ctx, db);
+    if (!username) return;
+
+    const { cardId } = ctx.params;
+    const { front, back } = await ctx.request.body.json();
+
+    // Validate input fields if provided
+    if (
+      (typeof front !== "string" && front !== undefined) ||
+      (typeof back !== "string" && back !== undefined)
+    ) {
+      ctx.response.body = {
+        error: INVALID_REQUEST,
+        message: "Front and back must be strings if provided",
+      };
+      ctx.response.status = 400;
+      return;
+    }
+
+    // Ensure at least one field is provided to update
+    if (front === undefined && back === undefined) {
+      ctx.response.body = {
+        error: INVALID_REQUEST,
+        message:
+          "At least one field (front or back) must be provided to update",
+      };
+      ctx.response.status = 400;
+      return;
+    }
+
+    // Check if the card exists and get its set_id
+    const cardInfo = db.sql<CardsBasicView>`
+      SELECT id, set_id, front, back FROM Cards
+      WHERE id = ${cardId};
+    `;
+
+    if (cardInfo.length === 0) {
+      ctx.response.body = { error: CARD_NOT_FOUND };
+      ctx.response.status = 404;
+      return;
+    }
+
+    const set_id = cardInfo[0].set_id;
+
+    // Check if user is authorized to edit this card (must be the set owner)
+    const setInfo = db.sql<SetsOwnerView>`
+      SELECT owner FROM Sets WHERE id = ${set_id};
+    `;
+
+    if (setInfo.length === 0) {
+      ctx.response.body = { error: "SET_NOT_FOUND" };
+      ctx.response.status = 404;
+      return;
+    }
+
+    const setOwner = setInfo[0].owner;
+
+    // Only the owner can edit the card
+    if (setOwner !== username) {
+      ctx.response.body = { error: FORBIDDEN };
+      ctx.response.status = 403;
+      return;
+    }
+
+    // Use the provided values or default to the existing values
+    const newFront = front ?? cardInfo[0].front;
+    const newBack = back ?? cardInfo[0].back;
+
+    // Update the card with the new values
+    db.sql`
+      UPDATE Cards
+      SET front = ${newFront}, back = ${newBack}
+      WHERE id = ${cardId}
+    `;
+
+    // Get the updated card data
+    const updatedCard = db.sql<CardsBasicView>`
+      SELECT id, set_id, front, back FROM Cards
+      WHERE id = ${cardId};
+    `;
+
+    ctx.response.body = updatedCard[0];
+    ctx.response.status = 200;
+  });
+
+  // Delete a card by ID - Allows the owner of the set to delete a card
+  router.delete("/:cardId", async (ctx) => {
+    const username = await getSession(ctx, db);
+    if (!username) return;
+
+    const { cardId } = ctx.params;
+
+    // Check if the card exists and get its set_id
+    const cardInfo = db.sql<CardsBasicView>`
+      SELECT id, set_id, front, back FROM Cards
+      WHERE id = ${cardId};
+    `;
+
+    if (cardInfo.length === 0) {
+      ctx.response.body = { error: CARD_NOT_FOUND };
+      ctx.response.status = 404;
+      return;
+    }
+
+    const set_id = cardInfo[0].set_id;
+
+    // Check if user is authorized to delete this card (must be the set owner)
+    const setInfo = db.sql<SetsOwnerView>`
+      SELECT owner FROM Sets WHERE id = ${set_id};
+    `;
+
+    if (setInfo.length === 0) {
+      ctx.response.body = { error: "SET_NOT_FOUND" };
+      ctx.response.status = 404;
+      return;
+    }
+
+    const setOwner = setInfo[0].owner;
+
+    // Only the owner can delete the card
+    if (setOwner !== username) {
+      ctx.response.body = { error: FORBIDDEN };
+      ctx.response.status = 403;
+      return;
+    }
+
+    // Delete the card from Cards table
+    db.sql`DELETE FROM Cards WHERE id = ${cardId};`;
+
+    ctx.response.body = { id: cardId, message: "Card deleted successfully" };
+    ctx.response.status = 200;
+  });
+
   // get card progress - Returns the progress data for a specific card based on user session
   router.get("/:cardId/progress", async (ctx) => {
     const username = await getSession(ctx, db);

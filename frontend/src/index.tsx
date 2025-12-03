@@ -13,6 +13,8 @@ const Login = lazy(() => import("./pages/Login/index.tsx"));
 const Register = lazy(() => import("./pages/Register/index.tsx"));
 const Dashboard = lazy(() => import("./pages/Dashboard/index.tsx"));
 const Learn = lazy(() => import("./pages/Learn/index.tsx"));
+const SetEdit = lazy(() => import("./pages/SetEdit/index.tsx"));
+const SetView = lazy(() => import("./pages/SetView/index.tsx"));
 const StudySets = lazy(() => import("./pages/Studysets/index.tsx"));
 const Search = lazy(() => import("./pages/Search/index.tsx"));
 
@@ -27,6 +29,8 @@ export function App() {
             <Route path="/login" component={Login} />
             <Route path="/register" component={Register} />
             <Route path="/learn/:id" component={Learn} />
+            <Route path="/set/:id" component={SetEdit} />
+            <Route path="/view/:id" component={SetView} />
             <Route path="/studysets" component={StudySets} />
             <Route path="/search" component={Search} />
             <Route default component={NotFound} />

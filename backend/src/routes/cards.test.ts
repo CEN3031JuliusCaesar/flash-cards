@@ -532,3 +532,517 @@ Deno.test({
     assertEquals(studyCtx.response.body, { error: "NO_SESSION_TOKEN" });
   },
 });
+
+Deno.test({
+  name: "Update Card - Success (Owner)",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const set = await createSet(db, user);
+    const card = await createCard(db, set);
+    const session = await createSession(db, user);
+
+    const updatedFront = createFront();
+    const updatedBack = createBack();
+
+    const updateCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "PATCH",
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+      body: ReadableStream.from([
+        JSON.stringify({
+          front: updatedFront,
+          back: updatedBack,
+        }),
+      ]),
+    });
+
+    await mw(updateCtx, next);
+
+    assertEquals(updateCtx.response.status, 200);
+    const responseBody = updateCtx.response.body as {
+      id: string;
+      set_id: string;
+      front: string;
+      back: string;
+    };
+    assertEquals(responseBody.id, card.id);
+    assertEquals(responseBody.set_id, card.set.id);
+    assertEquals(responseBody.front, updatedFront);
+    assertEquals(responseBody.back, updatedBack);
+
+    // Verify the card was updated in the database
+    const updatedCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE id = ${card.id}`;
+    assertEquals(updatedCards.length, 1);
+    assertEquals(updatedCards[0].front, updatedFront);
+    assertEquals(updatedCards[0].back, updatedBack);
+  },
+});
+
+Deno.test({
+  name: "Update Card - Partial Update (Front Only)",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const set = await createSet(db, user);
+    const card = await createCard(db, set);
+    const session = await createSession(db, user);
+
+    const updatedFront = createFront();
+
+    const updateCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "PATCH",
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+      body: ReadableStream.from([
+        JSON.stringify({
+          front: updatedFront,
+        }),
+      ]),
+    });
+
+    await mw(updateCtx, next);
+
+    assertEquals(updateCtx.response.status, 200);
+    const responseBody = updateCtx.response.body as {
+      id: string;
+      set_id: string;
+      front: string;
+      back: string;
+    };
+    assertEquals(responseBody.id, card.id);
+    assertEquals(responseBody.set_id, card.set.id);
+    assertEquals(responseBody.front, updatedFront);
+    assertEquals(responseBody.back, card.back); // Back should remain unchanged
+
+    // Verify the card was updated in the database
+    const updatedCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE id = ${card.id}`;
+    assertEquals(updatedCards.length, 1);
+    assertEquals(updatedCards[0].front, updatedFront);
+    assertEquals(updatedCards[0].back, card.back);
+  },
+});
+
+Deno.test({
+  name: "Update Card - Partial Update (Back Only)",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const set = await createSet(db, user);
+    const card = await createCard(db, set);
+    const session = await createSession(db, user);
+
+    const updatedBack = createBack();
+
+    const updateCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "PATCH",
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+      body: ReadableStream.from([
+        JSON.stringify({
+          back: updatedBack,
+        }),
+      ]),
+    });
+
+    await mw(updateCtx, next);
+
+    assertEquals(updateCtx.response.status, 200);
+    const responseBody = updateCtx.response.body as {
+      id: string;
+      set_id: string;
+      front: string;
+      back: string;
+    };
+    assertEquals(responseBody.id, card.id);
+    assertEquals(responseBody.set_id, card.set.id);
+    assertEquals(responseBody.front, card.front); // Front should remain unchanged
+    assertEquals(responseBody.back, updatedBack);
+
+    // Verify the card was updated in the database
+    const updatedCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE id = ${card.id}`;
+    assertEquals(updatedCards.length, 1);
+    assertEquals(updatedCards[0].front, card.front);
+    assertEquals(updatedCards[0].back, updatedBack);
+  },
+});
+
+Deno.test({
+  name: "Update Card - No Session",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const set = await createSet(db, user);
+    const card = await createCard(db, set);
+
+    const updateCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "PATCH",
+      headers: [
+        ["Content-Type", "application/json"],
+      ],
+      body: ReadableStream.from([
+        JSON.stringify({
+          front: createFront(),
+          back: createBack(),
+        }),
+      ]),
+    });
+
+    await mw(updateCtx, next);
+
+    assertEquals(updateCtx.response.status, 401);
+    assertEquals(updateCtx.response.body, { error: NO_SESSION_TOKEN });
+
+    // Verify the card was not updated in the database
+    const originalCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE id = ${card.id}`;
+    assertEquals(originalCards.length, 1);
+    assertEquals(originalCards[0].front, card.front);
+    assertEquals(originalCards[0].back, card.back);
+  },
+});
+
+Deno.test({
+  name: "Update Card - Unauthorized Access",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const owner = await createUser(db, "owner");
+    const set = await createSet(db, owner); // Create set with owner as owner
+    const card = await createCard(db, set); // Create card in owner's set
+    const unauthorizedUser = await createUser(db, "unauthorized");
+    const session = await createSession(db, unauthorizedUser);
+
+    const updateCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "PATCH",
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+      body: ReadableStream.from([
+        JSON.stringify({
+          front: createFront(),
+          back: createBack(),
+        }),
+      ]),
+    });
+
+    await mw(updateCtx, next);
+
+    assertEquals(updateCtx.response.status, 403);
+    assertEquals(updateCtx.response.body, { error: FORBIDDEN });
+
+    // Verify the card was not updated in the database
+    const originalCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE id = ${card.id}`;
+    assertEquals(originalCards.length, 1);
+    assertEquals(originalCards[0].front, card.front);
+    assertEquals(originalCards[0].back, card.back);
+  },
+});
+
+Deno.test({
+  name: "Update Card - Invalid Request (Non-string fields)",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const set = await createSet(db, user);
+    const card = await createCard(db, set);
+    const session = await createSession(db, user);
+
+    const updateCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "PATCH",
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+      body: ReadableStream.from([
+        JSON.stringify({
+          front: 123, // Invalid - should be string
+          back: createBack(),
+        }),
+      ]),
+    });
+
+    await mw(updateCtx, next);
+
+    assertEquals(updateCtx.response.status, 400);
+    assertEquals(updateCtx.response.body, {
+      error: INVALID_REQUEST,
+      message: "Front and back must be strings if provided",
+    });
+
+    // Verify the card was not updated in the database
+    const originalCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE id = ${card.id}`;
+    assertEquals(originalCards.length, 1);
+    assertEquals(originalCards[0].front, card.front);
+    assertEquals(originalCards[0].back, card.back);
+  },
+});
+
+Deno.test({
+  name: "Update Card - Invalid Request (No fields to update)",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const set = await createSet(db, user);
+    const card = await createCard(db, set);
+    const session = await createSession(db, user);
+
+    const updateCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "PATCH",
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+      body: ReadableStream.from([
+        JSON.stringify({}),
+      ]),
+    });
+
+    await mw(updateCtx, next);
+
+    assertEquals(updateCtx.response.status, 400);
+    assertEquals(updateCtx.response.body, {
+      error: INVALID_REQUEST,
+      message: "At least one field (front or back) must be provided to update",
+    });
+
+    // Verify the card was not updated in the database
+    const originalCards = db.sql<
+      CardsBasicView
+    >`SELECT id, set_id, front, back FROM Cards WHERE id = ${card.id}`;
+    assertEquals(originalCards.length, 1);
+    assertEquals(originalCards[0].front, card.front);
+    assertEquals(originalCards[0].back, card.back);
+  },
+});
+
+Deno.test({
+  name: "Update Card - Card Not Found",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const session = await createSession(db, user);
+
+    const updateCtx = testing.createMockContext({
+      path: `/api/cards/nonexistent_card_id`,
+      method: "PATCH",
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+      body: ReadableStream.from([
+        JSON.stringify({
+          front: createFront(),
+          back: createBack(),
+        }),
+      ]),
+    });
+
+    await mw(updateCtx, next);
+
+    assertEquals(updateCtx.response.status, 404);
+    assertEquals(updateCtx.response.body, { error: "CARD_NOT_FOUND" });
+  },
+});
+
+Deno.test({
+  name: "Delete Card - Success (Owner)",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const set = await createSet(db, user);
+    const card = await createCard(db, set);
+    const session = await createSession(db, user);
+
+    // Verify card exists before deletion
+    const cardsBefore = db.sql<
+      CardsBasicView
+    >`SELECT id FROM Cards WHERE id = ${card.id}`;
+    assertEquals(cardsBefore.length, 1);
+
+    const deleteCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "DELETE",
+      headers: [
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+    });
+
+    await mw(deleteCtx, next);
+
+    assertEquals(deleteCtx.response.status, 200);
+    assertEquals(deleteCtx.response.body, {
+      id: card.id,
+      message: "Card deleted successfully",
+    });
+
+    // Verify the card was deleted from the database
+    const cardsAfter = db.sql<
+      CardsBasicView
+    >`SELECT id FROM Cards WHERE id = ${card.id}`;
+    assertEquals(cardsAfter.length, 0);
+  },
+});
+
+Deno.test({
+  name: "Delete Card - No Session",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const set = await createSet(db, user);
+    const card = await createCard(db, set);
+
+    const deleteCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "DELETE",
+    });
+
+    await mw(deleteCtx, next);
+
+    assertEquals(deleteCtx.response.status, 401);
+    assertEquals(deleteCtx.response.body, { error: NO_SESSION_TOKEN });
+
+    // Verify the card was not deleted from the database
+    const cardsAfter = db.sql<
+      CardsBasicView
+    >`SELECT id FROM Cards WHERE id = ${card.id}`;
+    assertEquals(cardsAfter.length, 1);
+  },
+});
+
+Deno.test({
+  name: "Delete Card - Unauthorized Access",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const owner = await createUser(db, "owner");
+    const set = await createSet(db, owner); // Create set with owner as owner
+    const card = await createCard(db, set); // Create card in owner's set
+    const unauthorizedUser = await createUser(db, "unauthorized");
+    const session = await createSession(db, unauthorizedUser);
+
+    const deleteCtx = testing.createMockContext({
+      path: `/api/cards/${card.id}`,
+      method: "DELETE",
+      headers: [
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+    });
+
+    await mw(deleteCtx, next);
+
+    assertEquals(deleteCtx.response.status, 403);
+    assertEquals(deleteCtx.response.body, { error: FORBIDDEN });
+
+    // Verify the card was not deleted from the database
+    const cardsAfter = db.sql<
+      CardsBasicView
+    >`SELECT id FROM Cards WHERE id = ${card.id}`;
+    assertEquals(cardsAfter.length, 1);
+  },
+});
+
+Deno.test({
+  name: "Delete Card - Card Not Found",
+  async fn() {
+    const db = memDB();
+
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const user = await createUser(db);
+    const session = await createSession(db, user);
+
+    const deleteCtx = testing.createMockContext({
+      path: `/api/cards/nonexistent_card_id`,
+      method: "DELETE",
+      headers: [
+        ["Cookie", `SESSION=${session.token}`],
+      ],
+    });
+
+    await mw(deleteCtx, next);
+
+    assertEquals(deleteCtx.response.status, 404);
+    assertEquals(deleteCtx.response.body, { error: "CARD_NOT_FOUND" });
+  },
+});

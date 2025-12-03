@@ -3,6 +3,7 @@ import { getSetTrackedStatus, trackSet, untrackSet } from "../api/sets.ts";
 
 import "./SetCard.css";
 import { useLocation } from "preact-iso";
+// import { EditButton } from "./EditButton.tsx";
 
 export function SetCard({ set, previewCard }: {
   set: {
@@ -72,10 +73,12 @@ export function SetCard({ set, previewCard }: {
           }
         </div>
 
-        <div class="set-card-icon" onClick={toggleEnabled}>
-          {trackedStatus.isTracked === "SET_TRACKED"
-            ? <div class="icon-check">✔</div>
-            : <div class="icon-plus">＋</div>}
+        <div class="set-card-controls">
+          <div class="set-card-icon" onClick={toggleEnabled}>
+            {trackedStatus.isTracked === "SET_TRACKED"
+              ? <div class="icon-check">✔</div>
+              : <div class="icon-plus">＋</div>}
+          </div>
         </div>
       </div>
 

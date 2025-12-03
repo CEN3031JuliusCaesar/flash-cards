@@ -95,7 +95,7 @@ export default function StudySetsPage() {
         </div>
       </div>
 
-      <h2>Followed Sets</h2>
+      <h2>Active Sets</h2>
       <div class="set-grid">
         {trackedSets.map((set: Set) => (
           <SetCard
