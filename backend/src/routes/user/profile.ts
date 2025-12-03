@@ -40,7 +40,7 @@ export function createProfileRouter(db: Database) {
     const { username } = ctx.params;
 
     const data = db.sql<UsersSettingsView>`
-      SELECT pic_id, description
+      SELECT pic_id, description, is_admin
       FROM Users
       WHERE username = ${username};
     `;
@@ -51,7 +51,10 @@ export function createProfileRouter(db: Database) {
       return;
     }
 
-    ctx.response.body = data[0];
+    ctx.response.body = {
+      ...data[0],
+      is_admin: Boolean(data[0].is_admin),
+    };
   });
 
   // Update user's profile picture id and description
@@ -191,6 +194,92 @@ export function createProfileRouter(db: Database) {
 
     ctx.response.status = 200;
     ctx.response.body = { message: "Account deleted successfully" };
+  });
+
+  // Update user admin status - can only be performed by admins
+  router.put("/admin/:username", async (ctx) => {
+    const usernameFromSession = await getSession(ctx, db);
+    if (!usernameFromSession) return; // getSession already set the response
+
+    const { username } = ctx.params;
+
+    if (ctx.request.body.type() !== "json") {
+      ctx.response.body = { error: "INVALID_REQUEST" };
+      ctx.response.status = 400;
+      return;
+    }
+
+    const body = await ctx.request.body.json();
+
+    if (typeof body.is_admin !== "boolean") {
+      ctx.response.body = { error: "INVALID_REQUEST" };
+      ctx.response.status = 400;
+      return;
+    }
+
+    // Get the current user from the session
+    const sessionUser = db.sql<UsersSessionView>`
+      SELECT u.username, u.is_admin
+      FROM Users u
+      WHERE u.username = ${usernameFromSession};
+    `;
+
+    if (sessionUser.length === 0) {
+      ctx.response.body = { error: "INVALID_SESSION" };
+      ctx.response.status = 401;
+      return;
+    }
+
+    const currentUser = sessionUser[0];
+
+    // Check if the current user is an admin
+    if (!currentUser.is_admin) {
+      ctx.response.body = { error: UNAUTHORIZED };
+      ctx.response.status = 403;
+      return;
+    }
+
+    // Check if the target user exists
+    const targetUser = db.sql<UsersSessionView>`
+      SELECT u.username, u.is_admin
+      FROM Users u
+      WHERE u.username = ${username};
+    `;
+
+    if (targetUser.length === 0) {
+      ctx.response.body = { error: "USER_NOT_FOUND" };
+      ctx.response.status = 404;
+      return;
+    }
+
+    // Prevent admin from removing admin status from the last admin
+    if (targetUser[0].is_admin && !body.is_admin) {
+      const adminCount = db.sql<{ count: number }>`
+        SELECT COUNT(*) as count
+        FROM Users
+        WHERE is_admin = 1;
+      `[0].count;
+
+      if (adminCount <= 1) {
+        ctx.response.body = { error: "CANNOT_REMOVE_LAST_ADMIN" };
+        ctx.response.status = 400;
+        return;
+      }
+    }
+
+    // Update the user's admin status
+    db.sql`
+      UPDATE Users
+      SET is_admin = ${body.is_admin ? 1 : 0}
+      WHERE username = ${username};
+    `;
+
+    ctx.response.status = 200;
+    ctx.response.body = {
+      message: body.is_admin
+        ? "User promoted to admin successfully"
+        : "User admin status removed successfully",
+    };
   });
 
   return router;

@@ -62,7 +62,7 @@ export type UsersUsernameView = Pick<UsersRow, "username">;
 export type UsersLoginView = Pick<UsersRow, "username" | "hash" | "salt">;
 export type UsersSettingsView = Pick<
   UsersRow,
-  "pic_id" | "description"
+  "pic_id" | "description" | "is_admin"
 >;
 export type UsersProfileView = UsersSettingsView & UsersUsernameView;
 export type UsersSessionView = Pick<UsersRow, "username" | "is_admin">;

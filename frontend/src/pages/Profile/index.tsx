@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   deleteUserProfile,
   getUserProfile,
+  updateUserAdminStatus,
   updateUserProfile,
 } from "../../api/user/profile.ts";
 import { getSetsByOwner } from "../../api/sets.ts";
@@ -103,6 +104,23 @@ export default function ProfilePage() {
     },
   });
 
+  const updateAdminStatusMutation = useMutation({
+    mutationFn: (
+      { username, isAdmin }: { username: string; isAdmin: boolean },
+    ) => updateUserAdminStatus(username, { is_admin: isAdmin }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profile", profileUsername] });
+    },
+    onError: (error: any) => {
+      console.error("Error updating admin status:", error);
+      alert(
+        `Error updating admin status: ${
+          error?.response?.data?.error || error.message
+        }`,
+      );
+    },
+  });
+
   const handleDeleteProfile = () => {
     if (
       confirm(
@@ -110,6 +128,22 @@ export default function ProfilePage() {
       )
     ) {
       deleteProfileMutation.mutate(profileUsername);
+    }
+  };
+
+  const handleToggleAdminStatus = () => {
+    const newAdminStatus = !profile?.is_admin; // Toggle current admin status
+    const action = newAdminStatus
+      ? "promote to admin"
+      : "remove admin privileges from";
+    const confirmationMessage =
+      `Are you sure you want to ${action} ${profileUsername}?`;
+
+    if (confirm(confirmationMessage)) {
+      updateAdminStatusMutation.mutate({
+        username: profileUsername,
+        isAdmin: newAdminStatus,
+      });
     }
   };
 
@@ -127,7 +161,10 @@ export default function ProfilePage() {
         <div class="profile-avatar">
           {"😂"}
         </div>
-        <h1 class="profile-username">{profileUsername}</h1>
+        <div class="profile-info">
+          <h1 class="profile-username">{profileUsername}</h1>
+          {profile?.is_admin && <span class="admin-badge">Admin</span>}
+        </div>
         {logoutValid && (
           <button type="button" class="logout-button" onClick={handleLogout}>
             Logout
@@ -216,6 +253,28 @@ export default function ProfilePage() {
           >
             Delete Profile
           </button>
+        </section>
+      )}
+
+      {isAdmin && !isOwnProfile && (
+        <section class="admin-controls">
+          <div class="admin-control-group">
+            <h3>Admin Controls</h3>
+            <button
+              type="button"
+              class={`admin-status-toggle ${
+                profile?.is_admin ? "remove-admin" : "make-admin"
+              }`}
+              onClick={handleToggleAdminStatus}
+              disabled={updateAdminStatusMutation.isPending}
+            >
+              {updateAdminStatusMutation.isPending
+                ? "Updating..."
+                : profile?.is_admin
+                ? "Remove Admin Status"
+                : "Make Admin"}
+            </button>
+          </div>
         </section>
       )}
     </div>

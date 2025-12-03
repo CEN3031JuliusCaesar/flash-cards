@@ -31,8 +31,9 @@ Deno.test({
 
     assertEquals(ctx.response.status, 200);
     assertEquals(ctx.response.body, {
-      pic_id: 3,
-      description: "Test description",
+      pic_id: user.profile_picture,
+      description: user.description,
+      is_admin: user.is_admin,
     });
   },
 });
@@ -859,5 +860,375 @@ Deno.test({
     assertEquals(trackedSetsAfter.length, 0);
     assertEquals(setsAfter.length, 0);
     assertEquals(cardsAfter.length, 0);
+  },
+});
+
+Deno.test({
+  name: "Update User Admin Status - By Admin (Promote to Admin)",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create regular user and admin user
+    const user = await createUser(
+      db,
+      "testuser",
+      "test@example.com",
+      "Test description",
+      1,
+      false, // is not admin
+    );
+    const adminUser = await createUser(
+      db,
+      "adminuser",
+      "admin@example.com",
+      "Admin description",
+      0,
+      true, // isAdmin = true
+    );
+    const adminSession = await createSession(db, adminUser);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/admin/${user.username}`,
+      method: "PUT",
+      body: ReadableStream.from([
+        JSON.stringify({
+          is_admin: true,
+        }),
+      ]),
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${adminSession.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 200);
+    assertEquals(ctx.response.body, {
+      message: "User promoted to admin successfully",
+    });
+
+    // Verify the user's admin status was updated in the database
+    const updatedUser = db
+      .sql`SELECT username, is_admin FROM Users WHERE username = ${user.username};`;
+
+    assertEquals(updatedUser, [{
+      username: user.username,
+      is_admin: 1, // true as integer
+    }]);
+  },
+});
+
+Deno.test({
+  name: "Update User Admin Status - By Admin (Remove Admin)",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create admin user and another admin user
+    const user = await createUser(
+      db,
+      "adminuser",
+      "admin@example.com",
+      "Admin description",
+      1,
+      true, // is admin
+    );
+    const adminUser = await createUser(
+      db,
+      "mainadmin",
+      "mainadmin@example.com",
+      "Main Admin description",
+      0,
+      true, // isAdmin = true
+    );
+    const adminSession = await createSession(db, adminUser);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/admin/${user.username}`,
+      method: "PUT",
+      body: ReadableStream.from([
+        JSON.stringify({
+          is_admin: false,
+        }),
+      ]),
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${adminSession.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 200);
+    assertEquals(ctx.response.body, {
+      message: "User admin status removed successfully",
+    });
+
+    // Verify the user's admin status was updated in the database
+    const updatedUser = db
+      .sql`SELECT username, is_admin FROM Users WHERE username = ${user.username};`;
+
+    assertEquals(updatedUser, [{
+      username: user.username,
+      is_admin: 0, // false as integer
+    }]);
+  },
+});
+
+Deno.test({
+  name: "Update User Admin Status - Unauthorized Access (Regular User)",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create two regular users
+    const user1 = await createUser(
+      db,
+      "user1",
+      "user1@example.com",
+      "User1 description",
+      2,
+      false,
+    );
+    const user2 = await createUser(
+      db,
+      "user2",
+      "user2@example.com",
+      "User2 description",
+      4,
+      false,
+    );
+    const session2 = await createSession(db, user2);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/admin/${user1.username}`,
+      method: "PUT",
+      body: ReadableStream.from([
+        JSON.stringify({
+          is_admin: true,
+        }),
+      ]),
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${session2.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 403);
+    assertEquals(ctx.response.body, { error: UNAUTHORIZED });
+
+    // Verify the user's admin status was NOT updated in the database
+    const userStillNotAdmin = db
+      .sql`SELECT username, is_admin FROM Users WHERE username = ${user1.username};`;
+
+    assertEquals(userStillNotAdmin, [{
+      username: user1.username,
+      is_admin: 0, // should still be false
+    }]);
+  },
+});
+
+Deno.test({
+  name: "Update User Admin Status - Admin Cannot Remove Last Admin",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create only one admin user
+    const adminUser = await createUser(
+      db,
+      "onlyadmin",
+      "onlyadmin@example.com",
+      "Only Admin description",
+      0,
+      true, // isAdmin = true
+    );
+    const adminSession = await createSession(db, adminUser);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/admin/${adminUser.username}`,
+      method: "PUT",
+      body: ReadableStream.from([
+        JSON.stringify({
+          is_admin: false,
+        }),
+      ]),
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${adminSession.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 400);
+    assertEquals(ctx.response.body, { error: "CANNOT_REMOVE_LAST_ADMIN" });
+
+    // Verify the admin user's status was NOT changed
+    const adminStillExists = db
+      .sql`SELECT username, is_admin FROM Users WHERE username = ${adminUser.username};`;
+
+    assertEquals(adminStillExists.length, 1);
+    assertEquals(adminStillExists[0].is_admin, 1);
+  },
+});
+
+Deno.test({
+  name: "Update User Admin Status - Target User Not Found",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create admin user
+    const adminUser = await createUser(
+      db,
+      "adminuser",
+      "admin@example.com",
+      "Admin description",
+      0,
+      true, // isAdmin = true
+    );
+    const adminSession = await createSession(db, adminUser);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/admin/nonexistentuser`,
+      method: "PUT",
+      body: ReadableStream.from([
+        JSON.stringify({
+          is_admin: true,
+        }),
+      ]),
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${adminSession.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 404);
+    assertEquals(ctx.response.body, { error: "USER_NOT_FOUND" });
+  },
+});
+
+Deno.test({
+  name: "Update User Admin Status - No Session",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/admin/testuser`,
+      method: "PUT",
+      body: ReadableStream.from([
+        JSON.stringify({
+          is_admin: true,
+        }),
+      ]),
+      headers: [
+        ["Content-Type", "application/json"],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 401);
+    assertEquals(ctx.response.body, { error: "NO_SESSION_TOKEN" });
+  },
+});
+
+Deno.test({
+  name: "Update User Admin Status - Invalid Request Body",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create admin user
+    const adminUser = await createUser(
+      db,
+      "adminuser",
+      "admin@example.com",
+      "Admin description",
+      0,
+      true, // isAdmin = true
+    );
+    const adminSession = await createSession(db, adminUser);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/admin/testuser`,
+      method: "PUT",
+      body: ReadableStream.from([
+        JSON.stringify({
+          invalid_field: "invalid",
+        }),
+      ]),
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${adminSession.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 400);
+    assertEquals(ctx.response.body, { error: "INVALID_REQUEST" });
+  },
+});
+
+Deno.test({
+  name: "Update User Admin Status - Invalid is_admin Value",
+  async fn() {
+    const db = memDB();
+    await initializeDB(db);
+    const next = testing.createMockNext();
+    const mw = createAPIRouter(db).routes();
+
+    // Create admin user
+    const adminUser = await createUser(
+      db,
+      "adminuser",
+      "admin@example.com",
+      "Admin description",
+      0,
+      true, // isAdmin = true
+    );
+    const adminSession = await createSession(db, adminUser);
+
+    const ctx = testing.createMockContext({
+      path: `/api/user/profile/admin/testuser`,
+      method: "PUT",
+      body: ReadableStream.from([
+        JSON.stringify({
+          is_admin: "not_a_boolean", // Invalid type
+        }),
+      ]),
+      headers: [
+        ["Content-Type", "application/json"],
+        ["Cookie", `SESSION=${adminSession.token}`],
+      ],
+    });
+
+    await mw(ctx, next);
+
+    assertEquals(ctx.response.status, 400);
+    assertEquals(ctx.response.body, { error: "INVALID_REQUEST" });
   },
 });
